@@ -2,6 +2,8 @@
 name = "kiwi-ecs"
 version = "1.0.0"
 edition = "2021"
+author = "Jonas Everaert"
+license = "MIT"
 
 [dependencies]
 kiwi-internal-macros = { path = "../internal-macros" }
