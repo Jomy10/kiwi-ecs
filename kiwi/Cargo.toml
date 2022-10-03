@@ -1,0 +1,8 @@
+[package]
+name = "kiwi-ecs"
+version = "1.0.0"
+edition = "2021"
+
+[dependencies]
+kiwi-internal-macros = { path = "../internal-macros" }
+kiwi-macros = { path = "../macros" }
