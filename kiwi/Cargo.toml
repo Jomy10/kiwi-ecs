@@ -6,7 +6,7 @@ authors = ["Jonas Everaert"]
 license = "MIT"
 description = "A performant, small and versatile entity component system"
 repository = "https://github.com/jomy10/kiwi-ecs"
-keywords = ["ecs", "entity-component-system", "gamedev", "game-development", "game-dev"]
+keywords = ["ecs", "gamedev", "game-development", "game-dev"]
 categories = ["game-development"]
 
 [dependencies]
