@@ -2,6 +2,9 @@
 name = "kiwi-internal-macros"
 version = "1.0.0"
 edition = "2021"
+license = "MIT"
+authors = ["Jonas Everaert"]
+description = "Internal macros for the kiwi entity component system"
 
 [lib]
 proc-macro = true
