@@ -97,8 +97,6 @@ impl Archetype {
         let component_col: &ComponentColumn = self.components.get(&T::id()).unwrap();
         ent_ids.iter()
             .map(|ent_id| {
-                dbg!(&component_col.components);
-                dbg!(ent_id);
                 let dyn_comp = &**unsafe { component_col.components[*ent_id as usize].assume_init_ref() };
                 let comp: Option<&T> = dyn_comp.as_any().downcast_ref::<T>();
                 unsafe { comp.unwrap_unchecked() }

@@ -19,6 +19,12 @@ pub fn system(attr: TokenStream, item: TokenStream) -> TokenStream {
     // Function signature
     let sys_sig = &ast.sig;
     
+    let return_ok: TokenStream2 = if sys_sig.output != syn::ReturnType::Default {
+        quote! { Ok(()) }
+    } else {
+        quote! {}
+    };
+    
     // get world param
     let inputs = &ast.sig.inputs;
     let (world_name_ident, is_world_mutable) = system_get_world_name(inputs);
@@ -121,7 +127,7 @@ pub fn system(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     
-    TokenStream::from(quote! {
+    let ts = TokenStream::from(quote! {
         #sys_sig {
             #param_vars_init
             for i in 0..#first_param_var.len() {
@@ -130,8 +136,13 @@ pub fn system(attr: TokenStream, item: TokenStream) -> TokenStream {
                 
                 #func_body
             }
+            
+            #return_ok
         }  
-    })
+    });
+    
+    
+    ts
 }
 
 //==============
@@ -320,36 +331,36 @@ fn parse_system_attr(attrs: TokenStream) -> Vec<ParamType> {
 fn system_get_world_name(inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>) -> (syn::Ident, bool) {
     let mut world_name_ident: Option<syn::Ident> = None;
     let mut world_is_mutable = false;
-    for input in inputs.clone() {
-        if let syn::FnArg::Typed(typed_param) = input {
-            // check if param is of type `World`
-            let ty = typed_param.ty;
-            let ty = *ty;
-            if let syn::Type::Reference(ref_type) = ty {
-                if let Some(_) = ref_type.mutability {
-                    world_is_mutable = true;
-                } else {
-                    world_is_mutable = false;
-                }
-                let elem = ref_type.elem;
-                let elem = *elem;
-                if let syn::Type::Path(path) = elem {
-                    let path = path.path;
-                    let segments = path.segments;
-                    let ident = &segments.last().unwrap().ident;
-                    if ident.to_string() == "World" {
-                        // Parameter is World
-                        
-                        let pat = typed_param.pat;
-                        let pat = *pat;
-                        if let syn::Pat::Ident(pat_ident) = pat {
-                            world_name_ident = Some(pat_ident.ident);
-                        }
+    // for input in inputs.clone() {
+    if let syn::FnArg::Typed(typed_param) = &inputs[0] {
+        // check if param is of type `World`
+        let ty = typed_param.ty.clone();
+        let ty = *ty;
+        if let syn::Type::Reference(ref_type) = ty {
+            if let Some(_) = ref_type.mutability {
+                world_is_mutable = true;
+            } else {
+                world_is_mutable = false;
+            }
+            let elem = ref_type.elem;
+            let elem = *elem;
+            if let syn::Type::Path(path) = elem {
+                let path = path.path;
+                let segments = path.segments;
+                let ident = &segments.last().unwrap().ident;
+                if ident.to_string() == "World" {
+                    // Parameter is World
+                    
+                    let pat = typed_param.pat.clone();
+                    let pat = *pat;
+                    if let syn::Pat::Ident(pat_ident) = pat {
+                        world_name_ident = Some(pat_ident.ident);
                     }
                 }
             }
         }
     }
+    // }
     let world_name_ident = world_name_ident.expect("System function does not have a `world: &World` parameter");
     
     return (world_name_ident, world_is_mutable);

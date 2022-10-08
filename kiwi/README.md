@@ -90,10 +90,38 @@ pub fn main() {
 }
 ```
 
-To create a mutable system, the function should contain `world: &mut World`,
+To create a mutable system, the function should contain `world: &mut World` as its first argument,
 for an immutable one, add `world: &World`.
 
 The function can contain any number of arguments you can pass to it when calling.
+
+The function can return any type of `Result<(), Any>`. If this function has the given result
+return type, `Ok(())` will be returned at the end of the system.
+
+<!-- TODO: better example
+**Example**:
+```rust
+use ggez::{graphics, Context};
+use glam::Vec2;
+
+#[system(pos: Pos)]
+fn draw_pos(world: &World, canvas: &mut graphics::Canvas, ctx: &mut Context) -> GameResult<()> {
+  let rectangle = graphics::Mesh::new_rectangle(
+    ctx,
+    graphics::DrawMode::fill(),
+    graphics:Rect {
+      x: 0.0,
+      y: 0.0,
+      w: 10.0,
+      h: 10.0
+    },
+    graphics::Color::BLUE
+  )?; // return an error if one occurs
+  
+  canvas.draw(&rectangle, Vec2::new(pos.x. pos.y));
+} // Ok(()) is automatically returned after all entities have been queried
+```
+-->
 
 ### The second is using the `query` and `query_mut` macros:
 
