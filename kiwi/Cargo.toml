@@ -11,4 +11,4 @@ categories = ["game-development"]
 
 [dependencies]
 kiwi-internal-macros = { path = "../internal-macros", version = "1.0.0" }
-kiwi-macros = { path = "../macros", version = "1.0.0" }
+kiwi-macros = { path = "../macros", version = "1.0.1" }
