@@ -152,26 +152,91 @@ pub fn query_mut(item: TokenStream) -> TokenStream {
 }
 
 fn gen_query_tokens(item: TokenStream, func_name: &str) -> TokenStream {
-    let mut item_iter = item.into_iter();
-    let world = syn::Ident::new(&item_iter.next().unwrap().to_string(), proc_macro2::Span::call_site());
-    let mut items = Vec::new();
-    let mut count = 0;
-    let mut query_ids = false;
-    for (i, item) in item_iter.enumerate() {
-        if i == 1 && item.to_string() == "EntityId" {
-            query_ids = true;
-            continue;
+    let item_iter = item.into_iter();
+    let mut item_collect = ItemCollect { item: item_iter, collected: Vec::new() };
+    let mut is_end = false;
+    let world: String = match item_collect.collect_next() {
+        ItemCollectResult::ContainsMore(s) => s,
+        ItemCollectResult::End(s) => {
+            is_end = true;
+            s
         }
-        if let proc_macro::TokenTree::Punct(_) = item { continue } // TODO: enforce
-        items.push(syn::Ident::new(&item.to_string(), proc_macro2::Span::call_site()));
-        count += 1;
+    };
+    let world: &TokenStream2 = &world.parse().unwrap();
+    
+    if is_end {
+        let func_name: TokenStream2 = format!("{func_name}0").parse().unwrap();
+        return TokenStream::from(quote! {
+            (#world).#func_name()
+        });
     }
     
-    let func_name = syn::Ident::new(&format!("{func_name}{}{count}", if query_ids { "_ids" } else { "" }), proc_macro2::Span::call_site());
+    let mut components: Vec<TokenStream2> = Vec::new();
+    loop {
+        match item_collect.collect_next() {
+            ItemCollectResult::ContainsMore(s) => {
+                components.push(s.parse().unwrap());
+            }
+            ItemCollectResult::End(s) => {
+                components.push(s.parse().unwrap());
+                break;
+            }
+        }
+    }
+    
+    let func_name: TokenStream2 = format!("{func_name}{}", components.len()).parse().unwrap();
     
     TokenStream::from(quote! {
-        #world.#func_name::<#(#items,)*>()
+        (#world).#func_name::<#(#components,)*>()
     })
+}
+
+enum ItemCollectResult {
+    ContainsMore(String),
+    End(String)
+}
+
+struct ItemCollect {
+    item: proc_macro::token_stream::IntoIter,
+    collected: Vec<proc_macro::TokenTree>
+}
+
+impl ItemCollect {
+    fn collect_next(&mut self) -> ItemCollectResult {
+        loop {
+            let next = self.item.next();
+            match next {
+                Some(tt) => {
+                    match &tt {
+                        proc_macro::TokenTree::Group(_) |
+                        proc_macro::TokenTree::Ident(_) |
+                        proc_macro::TokenTree::Literal(_) 
+                            => self.collected.push(tt),
+                        proc_macro::TokenTree::Punct(p) => {
+                            if p.as_char() == ',' {
+                                let collected = self.collected.clone();
+                                self.collected.clear();
+                                return ItemCollectResult::ContainsMore(
+                                    collected.iter().map(|tt| {
+                                        tt.to_string()
+                                    }).collect::<String>()
+                                );
+                            } else {
+                                self.collected.push(tt);
+                            }
+                        },
+                    }
+                }
+                None => {
+                    return ItemCollectResult::End(
+                        self.collected.iter().map(|tt| {
+                                tt.to_string()
+                        }).collect::<String>()
+                    );
+                }
+            }
+        }
+    }
 }
 
 //==============
