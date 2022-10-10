@@ -11,6 +11,7 @@ mod world;
 pub use world::World;
 
 mod entity;
+pub use entity::EntityId;
 
 mod component;
 pub use component::{ComponentId, Component};
@@ -23,11 +24,3 @@ mod arch {
     pub(crate) use crate::archetype::*;
     pub(crate) use crate::arch_store::*;
 }
-
-// impl std::fmt::Debug for ComponentColumn {
-//     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-//         f.debug_struct("ComponentColumn")
-//             .field("components", &self.components.len())
-//             .finish()
-//     }
-// }
