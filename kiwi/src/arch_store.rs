@@ -54,6 +54,11 @@ impl ArchStore {
     pub(crate) fn get_archetype(&self, archetype: ArchetypeId) -> &Archetype {
         &self.archetypes[archetype as usize]
     }
+    
+    #[inline]
+    pub(crate) fn get_archetype_mut(&mut self, archetype: ArchetypeId) -> &mut Archetype {
+        &mut self.archetypes[archetype as usize]
+    }
 
     #[inline]
     pub(crate) fn remove_entity(&mut self, _ent_id: EntityId) {

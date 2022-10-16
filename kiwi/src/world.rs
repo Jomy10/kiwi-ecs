@@ -38,6 +38,11 @@ impl World {
         let comp: &T = unsafe { comp.unwrap_unchecked() };
         comp
     }
+    
+    pub fn set_component<T: Component + 'static>(&mut self, entity: EntityId, comp: T) {
+        let entity = &self.entity_store.entities()[entity as usize];
+        self.arch_store.get_archetype_mut(entity.arch_id).set_component(entity.arch_row, comp);
+    }
 }
 
 // Queries
