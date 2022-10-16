@@ -2,7 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-const MAX_ENTITY_COMPONENTS: usize = 10;
+const MAX_ENTITY_COMPONENTS: usize = 50;
 
 #[proc_macro]
 pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
