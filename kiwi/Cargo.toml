@@ -10,5 +10,5 @@ keywords = ["ecs", "gamedev", "game-development", "game-dev"]
 categories = ["game-development"]
 
 [dependencies]
-kiwi-internal-macros = { path = "../internal-macros", version = "1.0.0" }
+kiwi-internal-macros = { path = "../internal-macros", version = "1.0.1" }
 kiwi-macros = { path = "../macros", version = "1.0.2" }
