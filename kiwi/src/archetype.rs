@@ -1,5 +1,5 @@
 use std::mem::MaybeUninit;
-use std::collections::{HashMap, HashSet};
+use std::collections::{HashMap};
 
 use crate::component::{Component, ComponentId};
 use crate::entity::{EntityId, EntityStore};

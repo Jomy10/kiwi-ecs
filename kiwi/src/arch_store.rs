@@ -2,7 +2,6 @@ use std::collections::HashMap;
 
 use crate::component::ComponentId;
 use crate::arch::Archetype;
-use crate::entity::EntityId;
 
 pub type ArchetypeId = u32;
 

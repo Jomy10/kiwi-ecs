@@ -1,13 +1,31 @@
+use std::sync::{RwLock};
+
 use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-const MAX_ENTITY_COMPONENTS: usize = 50;
+const MAX_ENTITY_COMPONENTS_ENV: Option<&'static str> = std::option_env!("MAX_ENT_COMPS");
+static mut MAX_ENTITY_COMPONENTS: RwLock<Option<usize>> = RwLock::new(None);
+
+fn max_ent_comps() -> usize {
+    unsafe {
+        let mut max_ent_comps_opt = MAX_ENTITY_COMPONENTS.write().unwrap();
+        max_ent_comps_opt.unwrap_or_else(|| {
+            let max = MAX_ENTITY_COMPONENTS_ENV.map(|v| {
+                v.parse::<usize>()
+                    .expect("MAX_ENT_COMPS should be a number")
+            }).unwrap_or(50);
+            *max_ent_comps_opt = Some(max);
+            max
+        })
+    }
+}
 
 #[proc_macro]
 pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
+    let max_ent_comps = max_ent_comps();
     let mut fns = Vec::new();
-    (0..MAX_ENTITY_COMPONENTS).for_each(|i| {
+    (0..max_ent_comps).for_each(|i| {
         let name = syn::Ident::new(&format!("spawn_entity{i}"), proc_macro2::Span::call_site());
         let chars: Vec<syn::Ident> = (0..i).map(|i| syn::Ident::new(&itos(i), proc_macro2::Span::call_site())).collect();
         let mut generics: Vec<TokenStream2> = chars.iter().map(|c| {
@@ -67,12 +85,28 @@ fn itos(int: usize) -> String {
     return s;
 }
 
-const MAX_QUERY_COMPONENTS: usize = 10;
+const MAX_QUERY_COMPONENTS_ENV: Option<&'static str> = std::option_env!("MAX_QUERY_COMPS");
+static mut MAX_QUERY_COMPONENTS: RwLock<Option<usize>> = RwLock::new(None);
+
+fn max_query_comps() -> usize {
+    unsafe {
+        let mut max_ent_comps_opt = MAX_QUERY_COMPONENTS.write().unwrap();
+        max_ent_comps_opt.unwrap_or_else(|| {
+            let max = MAX_QUERY_COMPONENTS_ENV.map(|v| {
+                v.parse::<usize>()
+                    .expect("MAX_QUERY_COMPS environment variable should be a number")
+            }).unwrap_or(15);
+            *max_ent_comps_opt = Some(max);
+            max
+        })
+    }
+}
 
 #[proc_macro]
 pub fn gen_query(_: TokenStream) -> TokenStream {
+    let max_query_comps = max_query_comps();
     let mut fns = Vec::new();
-    (1..MAX_QUERY_COMPONENTS).for_each(|i| {
+    (1..max_query_comps).for_each(|i| {
         let func_name_query = syn::Ident::new(&format!("query{i}"), proc_macro2::Span::call_site());
         let func_name_query_mut_ptr = syn::Ident::new(&format!("query_mut_ptr{i}"), proc_macro2::Span::call_site());
         let func_name_query_ids = syn::Ident::new(&format!("query_ids{i}"), proc_macro2::Span::call_site());
