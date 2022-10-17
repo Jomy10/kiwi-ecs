@@ -61,8 +61,9 @@ impl ArchStore {
     }
 
     #[inline]
-    pub(crate) fn remove_entity(&mut self, _ent_id: EntityId) {
-        // TODO: add to available entity ids
+    pub(crate) fn remove_entity(&mut self, entity: &crate::entity::Entity) {
+        let arch = &mut self.archetypes[entity.arch_id as usize];
+        arch.remove_entity(entity.arch_row);
     }
     
     #[inline]

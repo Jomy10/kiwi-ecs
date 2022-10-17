@@ -9,7 +9,7 @@ pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
     let mut fns = Vec::new();
     (0..MAX_ENTITY_COMPONENTS).for_each(|i| {
         let name = syn::Ident::new(&format!("spawn_entity{i}"), proc_macro2::Span::call_site());
-        let chars: Vec<syn::Ident> = (0..i).map(|i| syn::Ident::new(&itoc(i).to_string(), proc_macro2::Span::call_site())).collect();
+        let chars: Vec<syn::Ident> = (0..i).map(|i| syn::Ident::new(&itos(i), proc_macro2::Span::call_site())).collect();
         let mut generics: Vec<TokenStream2> = chars.iter().map(|c| {
             quote! {
                 #c: Component + 'static,
@@ -54,9 +54,17 @@ pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
     })
 }
 
-/// integer to character
-fn itoc(int: usize) -> char {
-    ((int + 65) as u8) as char
+/// integer to string
+fn itos(int: usize) -> String {
+    let mut s = String::new();
+    if int + 65 >= 90 {
+        s.push(89 as char);
+        s.push_str(&itos(int + 65 - 90));
+    } else {
+        let c: char = ((int + 65) as u8) as char;
+        s.push(c);
+    }
+    return s;
 }
 
 const MAX_QUERY_COMPONENTS: usize = 10;
@@ -69,7 +77,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         let func_name_query_mut_ptr = syn::Ident::new(&format!("query_mut_ptr{i}"), proc_macro2::Span::call_site());
         let func_name_query_ids = syn::Ident::new(&format!("query_ids{i}"), proc_macro2::Span::call_site());
         let func_name_query_mut_ids = syn::Ident::new(&format!("query_mut_ptr_ids{i}"), proc_macro2::Span::call_site());
-        let generic_names: Vec<syn::Ident> = (0..i).map(|i| syn::Ident::new(&itoc(i).to_string(), proc_macro2::Span::call_site())).collect();
+        let generic_names: Vec<syn::Ident> = (0..i).map(|i| syn::Ident::new(&itos(i).to_string(), proc_macro2::Span::call_site())).collect();
         let generics: Vec<TokenStream2> = (0..i).map(|i| {
             let generic_name = &generic_names[i];
             quote! {
@@ -79,13 +87,13 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         
         // Return types //
         let return_types: Vec<TokenStream2> = (0..i).map(|i| {
-            let generic_name = syn::Ident::new(&itoc(i).to_string(), proc_macro2::Span::call_site());
+            let generic_name = syn::Ident::new(&itos(i).to_string(), proc_macro2::Span::call_site());
             quote! {
                 Vec<&#generic_name>
             }
         }).collect();
         let return_types_mut_ptr: Vec<TokenStream2> = (0..i).map(|i| {
-            let generic_name = syn::Ident::new(&itoc(i).to_string(), proc_macro2::Span::call_site());
+            let generic_name = syn::Ident::new(&itos(i).to_string(), proc_macro2::Span::call_site());
             quote! {
                 Vec<*mut #generic_name>
             }
@@ -114,7 +122,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         
         ///////////
         let archetype_variable_names: Vec<syn::Ident> = (0..i).map(|i| {
-            syn::Ident::new(&format!("archetypes_{}", itoc(i).to_lowercase()), proc_macro2::Span::call_site())
+            syn::Ident::new(&format!("archetypes_{}", itos(i).to_lowercase()), proc_macro2::Span::call_site())
         }).collect();
         
         let fn_generics = if generics.len() != 0 {
@@ -142,7 +150,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         };
         
         let component_names: Vec<TokenStream2> = (0..i).map(|i| {
-            let name = syn::Ident::new(&format!("c{}", itoc(i).to_lowercase()), proc_macro2::Span::call_site());
+            let name = syn::Ident::new(&format!("c{}", itos(i).to_lowercase()), proc_macro2::Span::call_site());
             quote! { #name }
         }).collect();
         
@@ -150,7 +158,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
             quote! { Vec::new() }
         }).collect();
         let comps_names: Vec<syn::Ident> = (0..i).map(|i| {
-            syn::Ident::new(&format!("comp{}", itoc(i).to_lowercase()), proc_macro2::Span::call_site())
+            syn::Ident::new(&format!("comp{}", itos(i).to_lowercase()), proc_macro2::Span::call_site())
         }).collect();
         let return_val: TokenStream2 = if return_types.len() == 1 {
             quote! { #(#component_names)* }

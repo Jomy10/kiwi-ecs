@@ -4,14 +4,6 @@ use std::collections::{HashMap, HashSet};
 use crate::component::{Component, ComponentId};
 use crate::entity::{EntityId, EntityStore};
 
-// macro_rules! get_entity_ids_iter {
-//     ($arch:tt, $ent_store:tt) => {
-//         $arch.entities.iter()
-//             .map(|v| *v)
-//             .filter(|id| $ent_store.is_alive(*id))
-//     }
-// }
-
 macro_rules! get_entity_ids_enumerate_iter {
     ($arch:tt, $ent_store:tt) => {
         $arch.entities.iter()
@@ -36,12 +28,7 @@ impl ComponentColumn {
 
 pub(crate) struct Archetype {
     components: HashMap<ComponentId, ComponentColumn>,
-    available_ent_ids: HashSet<EntityId>, // TODO: vec
-    // /// The size of the components arrays in `self.components`
-    // ent_count: u32,
-    /// Index in this vector is the same as in `components.components`
-    /// It holds entity ids that belong to this archetype, but they might be
-    /// dead, or moved to another archetype. i.e. do alive check
+    available_ent_ids: Vec<ArchRowId>,
     entities: Vec<EntityId>,
 }
 
@@ -55,8 +42,7 @@ impl Archetype {
         
         Self {
             components: comps,
-            available_ent_ids: HashSet::new(),
-            // ent_count: 0,
+            available_ent_ids: Vec::new(),
             entities: Vec::new()
         }
     }
@@ -64,9 +50,7 @@ impl Archetype {
     #[inline]
     /// Get an empty entity id
     pub(crate) fn new_archrow_id(&mut self, entity: EntityId) -> ArchRowId {
-        if self.available_ent_ids.len() != 0 {
-            let id = *unsafe { self.available_ent_ids.iter().next().unwrap_unchecked() };
-            self.available_ent_ids.remove(&id);
+        if let Some(id) = self.available_ent_ids.pop() {
             self.entities[id as usize] = entity;
             return id;
         } else {
@@ -78,7 +62,8 @@ impl Archetype {
 
     #[inline]
     pub(crate) fn set_component<T: Component + 'static>(&mut self, entity_id: ArchRowId, component: T) {
-        let component_col = self.components.get_mut(&T::id()).unwrap();
+        let component_col = self.components.get_mut(&T::id())
+            .expect(&format!("Component {} does not exist for entity with id {}", std::any::type_name::<T>(), entity_id));
         if component_col.components.len() <= entity_id as usize {
             component_col.components.resize_with((entity_id as usize) + 1, MaybeUninit::uninit);
         }
@@ -88,13 +73,15 @@ impl Archetype {
     #[inline]
     /// Get component of type `T` for entity with arch row `entity_id`
     pub(crate) fn get_component<T: Component>(&self, entity_id: ArchRowId) -> &MaybeUninit<Box<dyn Component>> {
-        let component_col = self.components.get(&T::id()).unwrap();
+        let component_col = self.components.get(&T::id())
+            .expect(&format!("Component {} does not exist for entity with id {}", std::any::type_name::<T>(), entity_id));
         &component_col.components[entity_id as usize]
     }
     
     #[inline]
     pub(crate) fn get_all_components<T: Component + 'static>(&self, ent_ids: &Vec<ArchRowId>) -> Vec<&T> {
-        let component_col: &ComponentColumn = self.components.get(&T::id()).unwrap();
+        let component_col: &ComponentColumn = self.components.get(&T::id())
+            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
         ent_ids.iter()
             .map(|ent_id| {
                 let dyn_comp = &**unsafe { component_col.components[*ent_id as usize].assume_init_ref() };
@@ -106,7 +93,8 @@ impl Archetype {
     #[inline]
     /// Get all components of type `T` for the entities with ids `ent_ids`
     pub(crate) fn get_all_components_mut<T: Component + 'static>(&mut self, ent_ids: &Vec<EntityId>) -> Vec<*mut T> {
-        let component_col: &mut ComponentColumn = self.components.get_mut(&T::id()).unwrap();
+        let component_col: &mut ComponentColumn = self.components.get_mut(&T::id())
+            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
         ent_ids.iter()
             .map(|ent_id| {
                 let dyn_comp = &mut**unsafe { component_col.components[*ent_id as usize].assume_init_mut() };
@@ -116,11 +104,6 @@ impl Archetype {
             })
             .collect::<Vec<*mut T>>()
     }
-    
-    // #[inline]
-    // fn get_entity_ids(&self, ent_store: &EntityStore) -> Vec<EntityId>{
-    //     get_entity_ids_iter!(self, ent_store).collect()
-    // }
     
     #[inline]
     pub(crate) fn get_arch_rows(&self, ent_store: &EntityStore) -> Vec<ArchRowId> {
@@ -134,5 +117,15 @@ impl Archetype {
         get_entity_ids_enumerate_iter!(self, ent_store)
             .map(|(row, id)| (row as u32, *id))
             .collect()
+    }
+    
+    #[inline]
+    pub(crate) fn has_component(&self, id: ComponentId) -> bool {
+        self.components.contains_key(&id)
+    }
+    
+    #[inline]
+    pub(crate) fn remove_entity(&mut self, arch_row: ArchRowId) {
+        self.available_ent_ids.push(arch_row);
     }
 }
