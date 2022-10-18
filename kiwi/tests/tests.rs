@@ -125,6 +125,38 @@ fn mut_query() {
     assert!(components.1.contains(&&Vel{x: 1, y: 9}))
 }
 
+#[test]
+fn mut_query_ptrs_after_set_component() {
+    pos_comp!();
+    
+    let mut world = World::new();
+    
+    spawn_entity!(world,
+        Pos { x: 0, y: 0 }
+    );
+    
+    let (ids, poss) = unsafe { query_mut!(world, EntityId, Pos) };
+    for i in 0..ids.len() {unsafe {
+        let id = ids[i];
+        let pos = poss[i];
+        
+        assert_eq!(*pos, Pos { x: 0, y: 0 });
+        
+        (*pos).x = 4;
+        
+        assert_eq!(*pos, Pos { x: 4, y: 0 });
+        
+        let current_pos = world.get_component::<Pos>(id);
+        
+        assert_eq!(*pos, *current_pos);
+        
+        world.set_component(id, Pos { x: 6, y: 10 });
+        
+        assert_eq!(*world.get_component::<Pos>(id), Pos { x: 6, y: 10 });
+        assert_eq!(*pos, Pos { x: 6, y: 10 }); // pointer still point to the correct array index
+    }}
+}
+
 mod example {
     use super::*;
     

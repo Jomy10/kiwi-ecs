@@ -1,6 +1,6 @@
 use std::time::SystemTime;
 
-use kiwi::*;
+use kiwi_ecs::*;
 use rand::prelude::*;
 use std::collections::HashSet;
 

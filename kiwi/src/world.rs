@@ -35,11 +35,13 @@ impl World {
     /// if the component does not exist for the given entity
     pub fn get_component<T: Component + 'static>(&self, entity: EntityId) -> &T {
         let entity = &self.entity_store.entities()[entity as usize];
-        let comp = self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row); // Panics if the component does not exist for this entity
-        let dyn_comp = &**unsafe { comp.assume_init_ref() }; // The user always needs to specify the components for the entity
-        let comp: Option<&T> = dyn_comp.as_any().downcast_ref::<T>();
-        let comp: &T = unsafe { comp.unwrap_unchecked() };
-        comp
+        unsafe { self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row).assume_init_ref() }
+        // let comp = self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row); // Panics if the component does not exist for this entity
+        // let dyn_comp = &**unsafe { comp.assume_init_ref() }; // The user always needs to specify the components for the entity
+        // let comp: Option<&T> = dyn_comp.as_any().downcast_ref::<T>();
+        // let comp: &T = unsafe { comp.unwrap_unchecked() };
+        // comp
+
     }
     
     /// Set an entity's component.

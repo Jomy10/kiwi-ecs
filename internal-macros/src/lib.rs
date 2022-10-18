@@ -48,7 +48,13 @@ pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
             pub fn #name #(#generics)* (&mut self, #(#params , )*) -> EntityId {
                 let ent_id = self.entity_store.new_id();
                 let components = vec![#(<#chars>::id(), )*];
-                let arch_id = match self.arch_store.get_new_entity_archetype(components) {
+                let arch_id = match self.arch_store.get_new_entity_archetype(components, || {
+                    vec![
+                        #(
+                            ::std::mem::size_of::<#chars>(),
+                        )*
+                    ]
+                }) {
                     NewEntityResult::NewArchetype(id) => {
                         #(
                             <#chars>::add_archetype(id);
@@ -260,7 +266,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
                     let archetype = &mut self.arch_store.archetypes[*arch_id as usize];
                     let entities = archetype.get_arch_rows(&self.entity_store);
                     #(
-                        let mut #comps_names: Vec<*mut #generic_names> = archetype.get_all_components_mut(&entities);
+                        let mut #comps_names: Vec<*mut #generic_names> = archetype.get_all_components_mut_ptr(&entities);
                         #component_names.append(&mut #comps_names);
                     )*
                 });
@@ -280,7 +286,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
                     let rows = entities.iter().map(|(row, _)| *row).collect();
                     let mut ent_ids = entities.iter().map(|(_, id)| *id).collect();
                     #(
-                        let mut #comps_names: Vec<*mut #generic_names> = archetype.get_all_components_mut(&rows);
+                        let mut #comps_names: Vec<*mut #generic_names> = archetype.get_all_components_mut_ptr(&rows);
                         #component_names.append(&mut #comps_names);
                     )*
                     ids.append(&mut ent_ids);

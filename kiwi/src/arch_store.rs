@@ -67,20 +67,21 @@ impl ArchStore {
     
     #[inline]
     /// Get the archetype of a new entity
-    pub(crate) fn get_new_entity_archetype(&mut self, components: Vec<ComponentId>) -> NewEntityResult {
+    /// - `get_component_sizes` is called when a new archetype is created
+    pub(crate) fn get_new_entity_archetype(&mut self, components: Vec<ComponentId>, get_component_sizes: fn() -> Vec<usize>) -> NewEntityResult {
         let mut components = components;
         let comps_hash = CompMapVal::hash_component(&mut components); 
         
-        return self.get_archetype_id_for_component_hash(comps_hash, &components);
+        return self.get_archetype_id_for_component_hash(comps_hash, &components, get_component_sizes);
     }
 
     #[inline]
-    fn get_archetype_id_for_component_hash(&mut self, hash: u32, components: &Vec<ComponentId>) -> NewEntityResult {
+    fn get_archetype_id_for_component_hash(&mut self, hash: u32, components: &Vec<ComponentId>, get_component_sizes: fn() -> Vec<usize>) -> NewEntityResult {
         match self.comp_map.get(&hash) {
             Some(val) => {
                 // See if correct
                 if &val.components != components {
-                    return self.get_archetype_id_for_component_hash(hash + 1, components);
+                    return self.get_archetype_id_for_component_hash(hash + 1, components, get_component_sizes);
                 } else {
                     return NewEntityResult::OldArchetype(val.archetype);
                 }
@@ -89,7 +90,7 @@ impl ArchStore {
                 // Create new archetype
                 let id = self.archetypes.len() as ArchetypeId;
                 self.archetypes.push(
-                    Archetype::new(components)
+                    Archetype::new(components, &get_component_sizes())
                 );
                 self.comp_map.insert(hash, CompMapVal {
                     components: components.clone(), // doesn't happen often
@@ -109,11 +110,11 @@ mod test {
     #[test]
     fn get_archetype_id_for_components_list() {
         let mut arch_store = ArchStore::new();
-        let id1 = arch_store.get_new_entity_archetype(vec![0, 1]).unwrap();
-        let id2 = arch_store.get_new_entity_archetype(vec![0, 2]).unwrap();
-        let id3 = arch_store.get_new_entity_archetype(vec![1, 0]).unwrap();
-        let id4 = arch_store.get_new_entity_archetype(vec![]).unwrap();
-        let id5 = arch_store.get_new_entity_archetype(vec![]).unwrap();
+        let id1 = arch_store.get_new_entity_archetype(vec![0, 1], || { vec![1, 1]}).unwrap();
+        let id2 = arch_store.get_new_entity_archetype(vec![0, 2], || { vec![1, 1]}).unwrap();
+        let id3 = arch_store.get_new_entity_archetype(vec![1, 0], || { vec![1, 1]}).unwrap();
+        let id4 = arch_store.get_new_entity_archetype(vec![], || { vec![] }).unwrap();
+        let id5 = arch_store.get_new_entity_archetype(vec![], || { vec![] }).unwrap();
         
         assert_eq!(id1, id3);
         assert_ne!(id2, id1);

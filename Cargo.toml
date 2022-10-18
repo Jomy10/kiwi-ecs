@@ -4,5 +4,6 @@
 members = [
   "kiwi",
   "macros",
-  "internal-macros"
+  "internal-macros",
+  "uot-bench"
 ]
