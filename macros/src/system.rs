@@ -12,6 +12,8 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         .expect("The system attribute macro can only be applied to functions.");
     
     // Function signature
+    let sys_attr = &ast.attrs;
+    let sys_vis = &ast.vis;
     let sys_sig = &ast.sig;
     
     let return_ok: TokenStream2 = if sys_sig.output != syn::ReturnType::Default {
@@ -123,7 +125,8 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     };
     
     let ts = TokenStream::from(quote! {
-        #sys_sig {
+        #(#sys_attr)*
+        #sys_vis #sys_sig {
             #param_vars_init
             for i in 0..#first_param_var.len() {
                 #id_idx

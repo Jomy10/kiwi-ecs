@@ -106,23 +106,23 @@ impl Archetype {
             }).collect()
     }
     
-    #[inline]
+    // #[inline]
     /// Get all components of type `T` for the entities with ids `ent_ids`
-    pub(crate) fn get_all_components_mut<T: Component + 'static>(&mut self, ent_ids: &Vec<EntityId>) -> Vec<&mut T> {
-        let component_col: &mut ComponentColumn = self.components.get_mut(&T::id())
-            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
-        let comps_ptr: *mut MaybeUninit<u8> = component_col.components.as_mut_ptr();
-        let comps_ptr: *mut MaybeUninit<T> = comps_ptr.cast();
-        ent_ids.iter()
-            .map(|ent_id| {
-                let comp = unsafe { comps_ptr.offset(*ent_id as isize).as_mut().unwrap_unchecked() };
-                unsafe { comp.assume_init_mut() }
-                // let dyn_comp = &mut**unsafe { component_col.components[*ent_id as usize].assume_init_mut() };
-                // let comp = dyn_comp.as_any_mut().downcast_mut::<T>();
-                // let comp = unsafe { comp.unwrap_unchecked() };
-                // comp as *mut T
-            }).collect()
-    }
+    // pub(crate) fn get_all_components_mut<T: Component + 'static>(&mut self, ent_ids: &Vec<EntityId>) -> Vec<&mut T> {
+    //     let component_col: &mut ComponentColumn = self.components.get_mut(&T::id())
+    //         .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
+    //     let comps_ptr: *mut MaybeUninit<u8> = component_col.components.as_mut_ptr();
+    //     let comps_ptr: *mut MaybeUninit<T> = comps_ptr.cast();
+    //     ent_ids.iter()
+    //         .map(|ent_id| {
+    //             let comp = unsafe { comps_ptr.offset(*ent_id as isize).as_mut().unwrap_unchecked() };
+    //             unsafe { comp.assume_init_mut() }
+    //             // let dyn_comp = &mut**unsafe { component_col.components[*ent_id as usize].assume_init_mut() };
+    //             // let comp = dyn_comp.as_any_mut().downcast_mut::<T>();
+    //             // let comp = unsafe { comp.unwrap_unchecked() };
+    //             // comp as *mut T
+    //         }).collect()
+    // }
     
     #[inline]
     /// Get all components of type `T` for the entities with ids `ent_ids`
