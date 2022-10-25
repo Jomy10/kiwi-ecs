@@ -13,30 +13,34 @@ pub fn derive_component_impl(name: &proc_macro2::Ident) -> TokenStream2 {
     quote! {
         impl #name {
             #[inline(always)]
-            fn get_archetypes_rwlock<'a>() -> &'a std::sync::RwLock<Vec<kiwi_ecs::ArchetypeId>> {
-                static mut ARCHETYPES: std::sync::RwLock<Vec<kiwi_ecs::ArchetypeId>> = std::sync::RwLock::new(Vec::new());
-                unsafe { &ARCHETYPES }
+            fn get_archetypes_rwlock() -> &'static std::sync::RwLock<Vec<kiwi_ecs::ArchetypeId>> {
+                static ARCHETYPES: std::sync::RwLock<Vec<kiwi_ecs::ArchetypeId>> = std::sync::RwLock::new(Vec::new());
+                &ARCHETYPES
             }
             
             #[inline(always)]
-            fn get_archetypes_read<'a>() -> std::sync::RwLockReadGuard<'a, Vec<kiwi_ecs::ArchetypeId>> {
+            fn get_archetypes_read() -> std::sync::RwLockReadGuard<'static, Vec<kiwi_ecs::ArchetypeId>> {
                 let archetype = Self::get_archetypes_rwlock();
                 let guard = archetype.read().unwrap();
                 guard
             }
             
             #[inline(always)]
-            fn get_archetypes_write<'a>() -> std::sync::RwLockWriteGuard<'a, Vec<kiwi_ecs::ArchetypeId>> {
+            fn get_archetypes_write() -> std::sync::RwLockWriteGuard<'static, Vec<kiwi_ecs::ArchetypeId>> {
                 let archetype = Self::get_archetypes_rwlock();
                 let guard = archetype.write().unwrap();
                 guard
             }
         }
         impl Component for #name {
+            // #[inline]
+            // fn get_archetypes() -> std::sync::RwLockReadGuard<'static, Vec<kiwi_ecs::ArchetypeId>> where Self: Sized {
+            //     let arch_guard = Self::get_archetypes_read();
+            //     return arch_guard
+            // }
             #[inline]
-            fn get_archetypes() -> std::sync::RwLockReadGuard<'static, Vec<kiwi_ecs::ArchetypeId>> where Self: Sized {
-                let arch_guard = Self::get_archetypes_read();
-                return arch_guard
+            fn get_archetypes() -> ::std::sync::RwLockReadGuard<'static, Vec<kiwi_ecs::ArchetypeId>> {
+                Self::get_archetypes_read()
             }
             #[inline]
             fn add_archetype(arch_id: kiwi_ecs::ArchetypeId) where Self: Sized {
@@ -45,10 +49,6 @@ pub fn derive_component_impl(name: &proc_macro2::Ident) -> TokenStream2 {
             }
             #[inline(always)]
             fn id() -> kiwi_ecs::ComponentId where Self: Sized { #this_id }
-            #[inline(always)]
-            fn as_any<'a>(&'a self) -> &'a dyn std::any::Any { self }
-            #[inline(always)]
-            fn as_any_mut<'a>(&'a mut self) -> &'a mut dyn std::any::Any { self }
         }
     }
 }

@@ -5,4 +5,7 @@ edition = "2021"
 publish = false
 
 [dependencies]
-kiwi = { path = "../kiwi" }
+kiwi-ecs = { path = "../kiwi" }
+
+[profile.release]
+debug = true

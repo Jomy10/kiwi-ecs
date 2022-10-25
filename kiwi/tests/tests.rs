@@ -17,7 +17,7 @@ macro_rules! vel_comp {
         }
     }
 }
-
+/*
 #[test]
 fn kill_entity_query() {
     let mut world = World::new();
@@ -71,7 +71,7 @@ fn get_component() {
     
     let mut world = World::new();
     let ent_id = world.spawn_entity1(Pos{x: 1, y: 0});
-    let comp: &Pos = world.get_component(ent_id);
+    let comp: &Pos = unsafe { world.get_component(ent_id) };
     assert_eq!(*comp, Pos{x: 1, y: 0});
 }
 
@@ -156,6 +156,44 @@ fn mut_query_ptrs_after_set_component() {
         assert_eq!(*pos, Pos { x: 6, y: 10 }); // pointer still point to the correct array index
     }}
 }
+*/
+#[test]
+fn new_query() {
+    pos_comp!();
+    vel_comp!();
+    
+    let mut world = World::new();
+    
+    spawn_entity!(world,
+        Pos { x: 0, y: 1 },
+        Vel { x: 2, y: 3}
+    );
+    
+    spawn_entity!(world,
+        Pos { x: 4, y: 5 }
+    );
+    
+    let q = world.temp_query::<Pos, Vel>(); // temp_query is a temporary name
+    q.for_each(|v| {
+         assert_eq!(*v.0, Pos{ x: 0, y: 1 });
+         assert_eq!(*v.1, Vel{ x: 2, y: 3 });
+    });
+}
+/*
+#[test]
+// Flags test
+fn unit_struct() {
+    #[derive(Component)]
+    struct Flag;
+    
+    let mut world = World::new();
+    
+    spawn_entity!(world,
+        Flag,
+    );
+    
+    let _ = query!(world, Flag);
+}
 
 mod example {
     use super::*;
@@ -190,4 +228,4 @@ mod example {
         pos.x += vel.x;
         pos.y += vel.y;
     }
-}
+}*/

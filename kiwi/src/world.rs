@@ -1,7 +1,8 @@
 use crate::entity::{EntityStore, EntityId};
-use crate::arch::{ArchStore, ArchetypeId, NewEntityResult};
+use crate::arch::{ArchStore, NewEntityResult};
 use crate::component::Component;
 
+// TODO: remove pub
 pub struct World {
     entity_store: EntityStore,
     arch_store: ArchStore,
@@ -29,19 +30,37 @@ impl World {
         self.entity_store.entity_count()
     }
 
+    // TODO: get component builder for an entity
+    // world.get_components(entity_id) // returns (&World, &Entity)
+    //    .component::<T>()
+    //    .component::<T>()
+    //    .get();
+    
     /// Returns the component of type `T` for entity with id `entity`.
     ///
     /// # Panics
     /// if the component does not exist for the given entity
-    pub fn get_component<T: Component + 'static>(&self, entity: EntityId) -> &T {
+    ///
+    /// # Safety
+    /// No checks are performed wheter the component is a flag (empty struct).
+    ///
+    /// To check whether the entity has a flag component, use the `has_component`
+    /// function defined on `World`.
+    pub unsafe fn get_component<T: Component + 'static>(&self, entity: EntityId) -> &T {
         let entity = &self.entity_store.entities()[entity as usize];
-        unsafe { self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row).assume_init_ref() }
-        // let comp = self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row); // Panics if the component does not exist for this entity
-        // let dyn_comp = &**unsafe { comp.assume_init_ref() }; // The user always needs to specify the components for the entity
-        // let comp: Option<&T> = dyn_comp.as_any().downcast_ref::<T>();
-        // let comp: &T = unsafe { comp.unwrap_unchecked() };
-        // comp
-
+        self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row)
+    }
+    
+    /// Returns a mutable referencce to the component of type `T` for entity with id `entity`
+    ///
+    /// # Safety
+    /// No checks are performed wheter the component is a flag (empty struct).
+    ///
+    /// To check whether the entity has a flag component, use the `has_component`
+    /// function defined on `World`.
+    pub unsafe fn get_component_mut<T: Component + 'static>(&mut self, entity: EntityId) -> &mut T {
+        let entity = &self.entity_store.entities()[entity as usize];
+        self.arch_store.get_archetype_mut(entity.arch_id).get_component_mut::<T>(entity.arch_row)
     }
     
     /// Set an entity's component.
@@ -58,6 +77,63 @@ impl World {
         let entity = &self.entity_store.entities()[entity as usize];
         self.arch_store.get_archetype(entity.arch_id).has_component(C::id())
     }
+    
+    /// Returns whether the component of type `C` is a flag (unit struct)
+    pub fn is_flag<C: Component>(&self) -> bool {
+        return std::mem::size_of::<C>() == 0;
+    }
+    
+    pub fn temp_query
+        <
+            'a,
+            A: Component + 'static,
+            B: Component + 'static,
+        >
+        (&'a self)
+        -> impl std::iter::Iterator<Item = (&'a A, &'a B)> + 'a
+    {
+        let archetypes_a = A::get_archetypes();
+        let archetypes_b = B::get_archetypes();
+        
+        (*archetypes_a).clone().into_iter()
+            .filter(move |elem| archetypes_b.contains(elem))
+            .flat_map(|arch_id| {
+                let archetype = self.arch_store.get_archetype(arch_id);
+                let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
+                
+                std::iter::zip(
+                    unsafe { archetype.get_all_components::<A>(&entities) },
+                    unsafe { archetype.get_all_components::<B>(&entities) }
+                )
+            })
+    }
+    
+    pub fn temp_query3<
+        'a,
+        A: Component + 'static,
+        B: Component + 'static,
+        C: Component + 'static,
+    > (&'a self) -> impl std::iter::Iterator<Item = (&'a A, &'a B, &'a C)> + 'a
+    {
+        let archetypes_a = A::get_archetypes();
+        let archetypes_b = B::get_archetypes();
+        let archetypes_c = C::get_archetypes();
+        
+        archetypes_a.clone().into_iter()
+            .filter(move |elem| archetypes_b.contains(elem))
+            .filter(move |elem| archetypes_c.contains(elem))
+            .flat_map(|arch_id| {
+                let archetype = self.arch_store.get_archetype(arch_id);
+                let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
+                std::iter::zip(
+                    unsafe { archetype.get_all_components::<A>(&entities) },
+                    std::iter::zip(
+                        unsafe { archetype.get_all_components::<B>(&entities) },
+                        unsafe { archetype.get_all_components::<C>(&entities) },
+                    )
+                )
+            }).map(|tuple| (tuple.0, tuple.1.0, tuple.1.1))
+    }
 }
 
 // Queries
@@ -71,5 +147,5 @@ impl World {
         }).collect()
     }
     
-    kiwi_internal_macros::gen_query!();
+    // kiwi_internal_macros::gen_query!();
 }

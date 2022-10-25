@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+/*use std::time::SystemTime;
 
 use kiwi_ecs::*;
 use rand::prelude::*;
@@ -20,11 +20,11 @@ struct Collider {
     radius: f64,
     count: u32,
 }
-
+*/
 fn main() {
-    bench(10000, 0);
+    // bench(10000, 0);
 }
-
+/*
 fn bench(size: usize, collision_limit: u32) {
     let iterations = 1000;
 
@@ -152,3 +152,4 @@ unsafe fn check_collisions(world: &mut World, collision_limit: u32, death_count:
 // fn print_collider_count(world: &World) {
 //     println!("{} {}", __kiwi_ent_id, collider.count);
 // }
+*/

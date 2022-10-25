@@ -1,18 +1,17 @@
 use std::sync::RwLockReadGuard;
-use std::any::Any;
 
 use crate::arch_store::ArchetypeId;
 
 pub type ComponentId = u32;
 
 pub trait Component {
-    fn get_archetypes() -> RwLockReadGuard<'static, Vec<ArchetypeId>> where Self: Sized;
+    fn get_archetypes() -> RwLockReadGuard<'static, Vec<ArchetypeId>>; // RwLockReadGuard<'static, Arc<Vec<ArchetypeId>>> where Self: Sized;
+    // fn get_archetypes() -> &'static Vec<ArchetypeId>;
     fn add_archetype(arch: ArchetypeId) where Self: Sized;
     fn id() -> ComponentId where Self: Sized;
-    fn as_any<'a>(&'a self) -> &'a dyn Any;
-    fn as_any_mut<'a>(&'a mut self) -> &'a mut dyn Any;
 }
 
+/*
 #[cfg(test)]
 mod tests {
     use crate::*;
@@ -28,3 +27,4 @@ mod tests {
         assert_eq!(*SomeComponent::get_archetypes(), vec![5]);
     }
 }
+*/

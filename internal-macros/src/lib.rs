@@ -108,10 +108,20 @@ fn max_query_comps() -> usize {
     }
 }
 
+mod query_gen;
+
 #[proc_macro]
 pub fn gen_query(_: TokenStream) -> TokenStream {
     let max_query_comps = max_query_comps();
-    let mut fns = Vec::new();
+    // let mut fns = Vec::new();
+    
+    let code = TokenStream::from(query_gen::query_impl(max_query_comps));
+    
+    println!("{}", code.to_string());
+    
+    code
+    
+    /*
     (1..max_query_comps).for_each(|i| {
         let func_name_query = syn::Ident::new(&format!("query{i}"), proc_macro2::Span::call_site());
         let func_name_query_mut_ptr = syn::Ident::new(&format!("query_mut_ptr{i}"), proc_macro2::Span::call_site());
@@ -128,8 +138,11 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         // Return types //
         let return_types: Vec<TokenStream2> = (0..i).map(|i| {
             let generic_name = syn::Ident::new(&itos(i).to_string(), proc_macro2::Span::call_site());
+            // quote! {
+            //     Vec<&#generic_name>
+            // }
             quote! {
-                Vec<&#generic_name>
+                impl std::iter::Iterator<Item = &#generic_name>
             }
         }).collect();
         let return_types_mut_ptr: Vec<TokenStream2> = (0..i).map(|i| {
@@ -144,7 +157,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         return_types_mut_ids.insert(0, quote! { Vec<EntityId> });
 
         let return_type: TokenStream2 = if return_types.len() == 1 {
-            quote! { #(#return_types)* }
+            quote! { impl std::iter::Iterator<Item = ( #(#return_types)*, )> + 'a }
         } else {
             quote! { (#(#return_types, )*) }
         };
@@ -167,7 +180,7 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         
         let fn_generics = if generics.len() != 0 {
             quote! {
-                <#(#generics,)*>
+                <'a, #(#generics,)*>
             }
         } else {
             quote! {}
@@ -212,95 +225,102 @@ pub fn gen_query(_: TokenStream) -> TokenStream {
         };
         
         fns.push(quote! {
-            /// Query the entities that have the #(#generic_names, )* component(s)
-            pub fn #func_name_query #fn_generics (&self) -> #return_type {
-                #(
-                    let #archetype_variable_names = <#generic_names>::get_archetypes();
-                )*
-                #archetypes_def
-                let (#(mut #component_names,)*) = (#(#vec_new_exprs,)*);
-                archetypes.into_iter().for_each(|arch_id| {
-                    let archetype = &self.arch_store.archetypes[*arch_id as usize];
-                    let entities = archetype.get_arch_rows(&self.entity_store);
-                    #(
-                        let mut #comps_names: Vec<&#generic_names> = archetype.get_all_components(&entities);
-                        #component_names.append(&mut #comps_names);
-                    )*
-                });
-                #return_val
+            /// Query the entities that have the specified component(s)
+            pub fn #func_name_query #fn_generics (&'a self) -> #return_type {
+                
+                
+                // todo!();
+                // #(
+                //     let #archetype_variable_names = <#generic_names>::get_archetypes();
+                // )*
+                // #archetypes_def
+                // let (#(mut #component_names,)*) = (#(#vec_new_exprs,)*);
+                // archetypes.into_iter().for_each(|arch_id| {
+                //     let archetype = &self.arch_store.archetypes[*arch_id as usize];
+                //     let entities = archetype.get_arch_rows(&self.entity_store);
+                //     #(
+                //         let mut #comps_names: Vec<&#generic_names> = unsafe { archetype.get_all_components(&entities) };
+                //         #component_names.append(&mut #comps_names);
+                //     )*
+                // });
+                // #return_val
+
             }
             
             pub fn #func_name_query_ids #fn_generics (&self) -> #return_type_ids {
-                #(
-                    let #archetype_variable_names = <#generic_names>::get_archetypes();
-                )*
-                #archetypes_def
-                let (mut ids, #(mut #component_names,)*) = (Vec::new(), #(#vec_new_exprs,)*);
-                archetypes.into_iter().for_each(|arch_id| {
-                    let archetype = &self.arch_store.archetypes[*arch_id as usize];
-                    let entities = archetype.get_rows_and_ids(&self.entity_store);
-                    let rows = entities.iter().map(|(row, _)| *row).collect();
-                    let mut ent_ids = entities.iter().map(|(_, id)| *id).collect();
-                    #(
-                        let mut #comps_names: Vec<&#generic_names> = archetype.get_all_components(&rows);
-                        #component_names.append(&mut #comps_names);
-                    )*
-                    ids.append(&mut ent_ids);
-                });
-                (ids, #(#component_names,)*)
+                todo!();
+                // #(
+                //     let #archetype_variable_names = <#generic_names>::get_archetypes();
+                // )*
+                // #archetypes_def
+                // let (mut ids, #(mut #component_names,)*) = (Vec::new(), #(#vec_new_exprs,)*);
+                // archetypes.into_iter().for_each(|arch_id| {
+                //     let archetype = &self.arch_store.archetypes[*arch_id as usize];
+                //     let entities = archetype.get_rows_and_ids(&self.entity_store);
+                //     let rows = entities.iter().map(|(row, _)| *row).collect();
+                //     let mut ent_ids = entities.iter().map(|(_, id)| *id).collect();
+                //     #(
+                //         let mut #comps_names: Vec<&#generic_names> = unsafe { archetype.get_all_components(&rows) };
+                //         #component_names.append(&mut #comps_names);
+                //     )*
+                //     ids.append(&mut ent_ids);
+                // });
+                // (ids, #(#component_names,)*)
             }
             
-            /// Query the entities that have the #(#generic_names, )* component(s)
+            /// Query the entities that have the specified component(s)
             /// 
             /// # Safety
             /// Might causes undefined behaviour if one or more of the component
             /// types have the same type
             pub unsafe fn #func_name_query_mut_ptr #fn_generics (&mut self) -> #return_type_mut_ptr {
-                #(
-                    let #archetype_variable_names = <#generic_names>::get_archetypes();
-                )*
-                #archetypes_def
+                todo!();
+                // #(
+                //     let #archetype_variable_names = <#generic_names>::get_archetypes();
+                // )*
+                // #archetypes_def
                 
-                let (#(mut #component_names,)*) = (#(#vec_new_exprs, )*);
-                archetypes.into_iter().for_each(|arch_id| {
-                    let archetype = &mut self.arch_store.archetypes[*arch_id as usize];
-                    let entities = archetype.get_arch_rows(&self.entity_store);
-                    #(
-                        let mut #comps_names: Vec<*mut #generic_names> = archetype.get_all_components_mut_ptr(&entities);
-                        #component_names.append(&mut #comps_names);
-                    )*
-                });
-                #return_val
+                // let (#(mut #component_names,)*) = (#(#vec_new_exprs, )*);
+                // archetypes.into_iter().for_each(|arch_id| {
+                //     let archetype = &mut self.arch_store.archetypes[*arch_id as usize];
+                //     let entities = archetype.get_arch_rows(&self.entity_store);
+                //     #(
+                //         let mut #comps_names: Vec<*mut #generic_names> = unsafe { archetype.get_all_components_mut_ptr(&entities) };
+                //         #component_names.append(&mut #comps_names);
+                //     )*
+                // });
+                // #return_val
             }
 
             pub unsafe fn #func_name_query_mut_ids #fn_generics (&mut self) -> #return_type_mut_ids {
-                #(
-                    let #archetype_variable_names = <#generic_names>::get_archetypes();
-                )*
-                #archetypes_def
+                todo!();
+                // #(
+                //     let #archetype_variable_names = <#generic_names>::get_archetypes();
+                // )*
+                // #archetypes_def
                 
-                let (mut ids, #(mut #component_names,)*) = (Vec::new(), #(#vec_new_exprs, )*);
-                archetypes.into_iter().for_each(|arch_id| {
-                    let archetype = &mut self.arch_store.archetypes[*arch_id as usize];
-                    let entities = archetype.get_rows_and_ids(&self.entity_store);
-                    let rows = entities.iter().map(|(row, _)| *row).collect();
-                    let mut ent_ids = entities.iter().map(|(_, id)| *id).collect();
-                    #(
-                        let mut #comps_names: Vec<*mut #generic_names> = archetype.get_all_components_mut_ptr(&rows);
-                        #component_names.append(&mut #comps_names);
-                    )*
-                    ids.append(&mut ent_ids);
-                });
-                (ids, #(#component_names,)*)
+                // let (mut ids, #(mut #component_names,)*) = (Vec::new(), #(#vec_new_exprs, )*);
+                // archetypes.into_iter().for_each(|arch_id| {
+                //     let archetype = &mut self.arch_store.archetypes[*arch_id as usize];
+                //     let entities = archetype.get_rows_and_ids(&self.entity_store);
+                //     let rows = entities.iter().map(|(row, _)| *row).collect();
+                //     let mut ent_ids = entities.iter().map(|(_, id)| *id).collect();
+                //     #(
+                //         let mut #comps_names: Vec<*mut #generic_names> = unsafe { archetype.get_all_components_mut_ptr(&rows) };
+                //         #component_names.append(&mut #comps_names);
+                //     )*
+                //     ids.append(&mut ent_ids);
+                // });
+                // (ids, #(#component_names,)*)
             }
         });
-    });
+    });*/
     
-    let tokens = TokenStream::from(quote! {
-        #(#fns)*
-    });
+    // let tokens = TokenStream::from(quote! {
+    //     #(#fns)*
+    // });
     
     // println!("{}", &tokens.to_string());
     
-    tokens
+    // tokens
 }
