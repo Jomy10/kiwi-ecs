@@ -23,7 +23,6 @@ pub(crate) type ArchRowId = u32;
 //=====================
 
 struct ComponentColumn {
-    // components: Vec<MaybeUninit<Box<dyn Component>>>,
     components: Vec<MaybeUninit<u8>>,
 }
 
@@ -149,25 +148,43 @@ impl Archetype {
         <'a, T: Component + 'static>
         (
             &'a self, 
-            ent_ids: *const Vec<ArchRowId>
-            // ent_ids: impl std::iter::Iterator<Item = ArchRowId>
-            // ent_ids: std::slice::Iter<'a, ArchRowId>
-            // ent_ids: impl std::iter::Iterator<Item = ArchRowId>
-
+            ent_ids: Vec<ArchRowId>
         )
         -> impl std::iter::Iterator<Item = &'a T>
     {
         let component_col_wrap = self.components.get(&T::id())
-            .unwrap();
-            // .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids.clone().collect::<Vec<&ArchRowId>>()));
+            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
         
         let component_col = component_col_wrap.val.as_ref().unwrap_unchecked();
         let comps_ptr: *const MaybeUninit<u8> = component_col.components.as_ptr();
         let comps_ptr: *const MaybeUninit<T> = comps_ptr.cast();
-        (*ent_ids).iter()
+        
+        ent_ids.into_iter()
             .map(move |ent_id| { // move comps_ptr
-                let comp = comps_ptr.offset(*ent_id as isize).as_ref().unwrap_unchecked();
+                let comp = comps_ptr.offset(ent_id as isize).as_ref().unwrap_unchecked();
                 comp.assume_init_ref()
+            })
+    }
+    
+    #[inline]
+    pub(crate) unsafe fn get_all_components_mut<
+        'a, T: Component + 'static
+    >(
+        &'a mut self,
+        ent_ids: Vec<ArchRowId>,
+    ) -> impl std::iter::Iterator<Item = &'a mut T> 
+    {
+        let component_col_wrap = self.components.get_mut(&T::id())
+            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
+        
+        let component_col = component_col_wrap.val.as_mut().unwrap_unchecked();
+        let comps_ptr: *mut MaybeUninit<u8> = component_col.components.as_mut_ptr();
+        let comps_ptr: *mut MaybeUninit<T> = comps_ptr.cast();
+        
+        ent_ids.into_iter()
+            .map(move |ent_id| {
+                let comp = comps_ptr.offset(ent_id as isize).as_mut().unwrap_unchecked();
+                comp.assume_init_mut()
             })
     }
     
