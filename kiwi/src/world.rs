@@ -155,8 +155,8 @@ impl World {
                 let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows(&self.entity_store).collect() };
                 
                 std::iter::zip(
-                    entities.into_iter(),
-                    unsafe { (*archetype).get_all_components_mut::<A>(entities.clone()) },
+                    entities.clone().into_iter(),
+                    unsafe { (*archetype).get_all_components_mut::<A>(entities) },
                 )
             })
     }

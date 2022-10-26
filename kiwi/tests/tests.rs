@@ -18,22 +18,22 @@ macro_rules! vel_comp {
     }
 }
 
-// #[test]
-// fn kill_entity_query() {
-//     let mut world = World::new();
-//     let id1 = world.spawn_entity0();
-//     let id2 = world.spawn_entity0();
-//     let ids = world.query_ids0();
-//     assert_eq!(ids, vec![id1, id2]);
+#[test]
+fn kill_entity_query() {
+    let mut world = World::new();
+    let id1 = world.spawn_entity0();
+    let id2 = world.spawn_entity0();
+    let ids = world.query_ids0();
+    assert_eq!(ids, vec![id1, id2]);
     
-//     world.kill(id1);
-//     let ids = world.query_ids0();
-//     assert_eq!(ids, vec![id2]);
+    world.kill(id1);
+    let ids = world.query_ids0();
+    assert_eq!(ids, vec![id2]);
     
-//     world.kill(id2);
-//     let ids = world.query_ids0();
-//     assert_eq!(ids.len(), 0);
-// }
+    world.kill(id2);
+    let ids = world.query_ids0();
+    assert_eq!(ids.len(), 0);
+}
 
 #[test]
 fn spawn_entity() {
@@ -123,37 +123,35 @@ fn mut_query() {
     assert_eq!(*components.next().unwrap().1, Vel{x: 1, y: 9})
 }
 
-// #[test]
-// fn mut_query_after_set_component() {
-//     pos_comp!();
+#[test]
+fn mut_query_after_set_component() {
+    pos_comp!();
     
-//     let mut world = World::new();
+    let mut world = World::new();
+    let world_ptr: *mut World = &mut world;
     
-//     spawn_entity!(world,
-//         Pos { x: 0, y: 0 }
-//     );
+    spawn_entity!(world,
+        Pos { x: 0, y: 0 }
+    );
     
-//     let (ids, poss) = unsafe { query_mut!(world, EntityId, Pos) };
-//     for i in 0..ids.len() {unsafe {
-//         let id = ids[i];
-//         let pos = poss[i];
+    let query = world.query_mut_id1::<Pos>();
+    query.for_each(|(id, pos)| {
+        assert_eq!(*pos, Pos { x: 0, y: 0 });
         
-//         assert_eq!(*pos, Pos { x: 0, y: 0 });
+        pos.x = 4;
         
-//         (*pos).x = 4;
+        assert_eq!(*pos, Pos { x: 4, y: 0 });
         
-//         assert_eq!(*pos, Pos { x: 4, y: 0 });
+        let current_pos = unsafe { (*world_ptr).get_component::<Pos>(id) };
         
-//         let current_pos = world.get_component::<Pos>(id);
+        assert_eq!(*pos, *current_pos);
         
-//         assert_eq!(*pos, *current_pos);
+        unsafe { (*world_ptr).set_component(id, Pos { x: 6, y: 10 }) };
         
-//         world.set_component(id, Pos { x: 6, y: 10 });
-        
-//         assert_eq!(*world.get_component::<Pos>(id), Pos { x: 6, y: 10 });
-//         assert_eq!(*pos, Pos { x: 6, y: 10 }); // pointer still point to the correct array index
-//     }}
-// }
+        assert_eq!(*unsafe { (*world_ptr).get_component::<Pos>(id) }, Pos { x: 6, y: 10 });
+        assert_eq!(*pos, Pos { x: 6, y: 10 });
+    });
+}
 
 // #[test]
 // fn mut_query_ptrs_after_set_component() {
@@ -187,53 +185,55 @@ fn mut_query() {
 //     }}
 // }
 
-/*
-#[test]
-// Flags test
-fn unit_struct() {
-    #[derive(Component)]
-    struct Flag;
+// #[test]
+// // Flags test
+// fn unit_struct() {
+//     #[derive(Component)]
+//     struct Flag;
     
-    let mut world = World::new();
+//     let mut world = World::new();
     
-    spawn_entity!(world,
-        Flag,
-    );
+//     spawn_entity!(world,
+//         Flag,
+//     );
     
-    let _ = query!(world, Flag);
-}
+//     let q = query!(world, Flag);
+//     q.for_each(|_f| {
+        
+//     });
+// }
 
-mod example {
-    use super::*;
+// mod example {
+//     use super::*;
     
-    #[derive(Component, PartialEq, Debug)]
-    struct Pos {
-        x: u32, y: u32
-    }
-    #[derive(Component)]
-    struct Vel {
-        x: u32, y: u32
-    }
+//     #[derive(Component, PartialEq, Debug)]
+//     struct Pos {
+//         x: u32, y: u32
+//     }
+//     #[derive(Component)]
+//     struct Vel {
+//         x: u32, y: u32
+//     }
 
-    #[test]
-    fn example() {
-        let mut world = World::new();
+//     #[test]
+//     fn example() {
+//         let mut world = World::new();
         
-        for _ in 0..10 {
-            spawn_entity!(world, Pos { x: 0, y: 0 }, Vel { x: 1, y: 1 });
-        }
+//         for _ in 0..10 {
+//             spawn_entity!(world, Pos { x: 0, y: 0 }, Vel { x: 1, y: 1 });
+//         }
         
-        move_entities(&mut world);
+//         move_entities(&mut world);
         
-        let components = query!(world, Pos);
-        for component in components {
-            assert_eq!(*component, Pos { x: 1, y: 1 });
-        }
-    }
+//         let components = query!(world, Pos);
+//         for component in components {
+//             assert_eq!(*component, Pos { x: 1, y: 1 });
+//         }
+//     }
     
-    #[system(pos: Pos, vel: Vel)]
-    fn move_entities(world: &mut World) {
-        pos.x += vel.x;
-        pos.y += vel.y;
-    }
-}*/
+//     #[system(pos: Pos, vel: Vel)]
+//     fn move_entities(world: &mut World) {
+//         pos.x += vel.x;
+//         pos.y += vel.y;
+//     }
+// }

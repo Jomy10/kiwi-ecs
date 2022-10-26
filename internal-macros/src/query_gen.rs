@@ -7,9 +7,10 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
         // General //
         let (
             func_name_query,
+            func_name_query_id,
             func_name_query_mut,
+            func_name_query_mut_id,
             _func_name_query_mut_ptr,
-            _func_name_query_ids,
             _func_name_query_mut_ids,
         ) = query_names(i);
         
@@ -22,8 +23,10 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
         let (
             // impl ::std::iter::Iterator<Item= (&'a A, &'a B, ...)> + 'a
             query_return_type,
+            query_return_type_id,
             // impl ::std::iter::Iterator<Item= (&'a mut A, &'a mut B, ...)> + 'a
-            query_return_type_mut
+            query_return_type_mut,
+            query_return_type_mut_id,
         ) = return_types(&generic_names);
         
         // Implementation //
@@ -32,10 +35,13 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
         
         let filter_iterator = filter_iterator(&generic_names, i);
         
-        let zip_reg = zip(&generic_names, GetComponentsType::Regular);
-        let zip_mut = zip(&generic_names, GetComponentsType::Mut);
+        let zip_reg = zip(&generic_names, GetComponentsType::Regular, false);
+        let zip_reg_id = zip(&generic_names, GetComponentsType::Regular, true);
+        let zip_mut = zip(&generic_names, GetComponentsType::Mut, false);
+        let zip_mut_id = zip(&generic_names, GetComponentsType::Mut, true);
         
-        let end_map = end_map(i);
+        let end_map_reg = end_map(i);
+        let end_map_ids = end_map(i + 1);
         
         quote! {
             pub fn #func_name_query<'a, #(#generics,)*>(&'a self) -> #query_return_type {
@@ -48,7 +54,20 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                         
                         #zip_reg
                     })
-                    #end_map
+                    #end_map_reg
+            }
+            
+            pub fn #func_name_query_id<'a, #(#generics,)*>(&'a self) -> #query_return_type_id {
+                #(#archetypes_defs)*
+                
+                #filter_iterator
+                    .flat_map(|arch_id| {
+                        let archetype = self.arch_store.get_archetype(arch_id);
+                        let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
+                    
+                        #zip_reg_id
+                    })
+                    #end_map_ids
             }
             
             pub fn #func_name_query_mut<'a, #(#generics,)*>(&'a mut self) -> #query_return_type_mut {
@@ -61,18 +80,32 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                         
                         #zip_mut
                     })
-                    #end_map
+                    #end_map_reg
+            }
+            
+            pub fn #func_name_query_mut_id<'a, #(#generics,)*>(&'a mut self) -> #query_return_type_mut_id {
+                #(#archetypes_defs)*
+                
+                #filter_iterator
+                    .flat_map(|arch_id| {
+                        let archetype: *mut crate::arch::Archetype = self.arch_store.get_archetype_mut(arch_id);
+                        let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows(&self.entity_store).collect() };
+                        
+                        #zip_mut_id
+                    })
+                    #end_map_ids
             }
         }
     }).collect()
 }
 
-fn query_names(i: usize) -> (syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident) {
+fn query_names(i: usize) -> (syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident) {
     (
         syn::Ident::new(&format!("query{i}"), proc_macro2::Span::call_site()),
-        syn::Ident::new(&format!("query_mut{i}"), proc_macro2::Span::call_site()),
-        syn::Ident::new(&format!("query_mut_ptr{i}"), proc_macro2::Span::call_site()),
         syn::Ident::new(&format!("query_ids{i}"), proc_macro2::Span::call_site()),
+        syn::Ident::new(&format!("query_mut{i}"), proc_macro2::Span::call_site()),
+        syn::Ident::new(&format!("query_mut_id{i}"), proc_macro2::Span::call_site()),
+        syn::Ident::new(&format!("query_mut_ptr{i}"), proc_macro2::Span::call_site()),
         syn::Ident::new(&format!("query_mut_ptr_ids{i}"), proc_macro2::Span::call_site()),
     )
 }
@@ -87,7 +120,7 @@ fn generics(generic_names: &Vec<syn::Ident>, i: usize) -> Vec<TokenStream2> {
     }).collect()
 }
 
-fn return_types(generic_names: &Vec<syn::Ident>) -> (TokenStream2, TokenStream2) {
+fn return_types(generic_names: &Vec<syn::Ident>) -> (TokenStream2, TokenStream2, TokenStream2, TokenStream2) {
     if generic_names.len() == 1 {
         let generic_name = &generic_names[0];
         (
@@ -95,8 +128,14 @@ fn return_types(generic_names: &Vec<syn::Ident>) -> (TokenStream2, TokenStream2)
                 impl ::std::iter::Iterator<Item = &'a #generic_name> + 'a
             },
             quote! {
+                impl ::std::iter::Iterator<Item = (crate::EntityId, &'a #generic_name)> + 'a
+            },
+            quote! {
                 impl ::std::iter::Iterator<Item = &'a mut #generic_name> + 'a
-            }
+            },
+            quote! {
+                impl ::std::iter::Iterator<Item = (crate::EntityId, &'a mut #generic_name)> + 'a
+            },
         )
     } else {
         (
@@ -104,8 +143,14 @@ fn return_types(generic_names: &Vec<syn::Ident>) -> (TokenStream2, TokenStream2)
                 impl ::std::iter::Iterator<Item = (#(&'a #generic_names,)*)> + 'a
             },
             quote! {
+                impl ::std::iter::Iterator<Item = (crate::EntityId, #(&'a #generic_names,)*)> + 'a
+            },
+            quote! {
                 impl ::std::iter::Iterator<Item = (#(&'a mut #generic_names,)*)> + 'a
-            }
+            },
+            quote! {
+                impl ::std::iter::Iterator<Item = (crate::EntityId, #(&'a mut #generic_names,)*)> + 'a
+            },
         )
     }
 }
@@ -142,7 +187,7 @@ fn filter_iterator(generic_names: &Vec<syn::Ident>, i: usize) -> TokenStream2 {
     }
 }
 
-fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType) -> TokenStream2 {
+fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType, query_ids: bool) -> TokenStream2 {
     if generic_names.len() == 1 {
         let generic_name = &generic_names[0];
         let archetype = match ty {
@@ -153,11 +198,31 @@ fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType) -> TokenStream2 {
             GetComponentsType::Regular => quote! { get_all_components },
             GetComponentsType::Mut => quote! { get_all_components_mut },
         };
-        quote! {
-            unsafe { #archetype.#func_name ::<#generic_name>(entities) }
+        
+        if query_ids {
+            quote! {
+                ::std::iter::zip(
+                    entities.clone().into_iter(),
+                    unsafe { #archetype.#func_name ::<#generic_name>(entities) }
+                )
+            }
+        } else {
+            quote! {
+                unsafe { #archetype.#func_name ::<#generic_name>(entities) }
+            }
         }
     } else {
-        get_next_zip(generic_names, 0, ty).unwrap()
+        let zips = get_next_zip(generic_names, 0, ty).unwrap();
+        if query_ids {
+            quote! {
+                ::std::iter::zip(
+                    entities.clone().into_iter(),
+                    #zips
+                )
+            }
+        } else {
+            zips
+        }
     }
 }
 
