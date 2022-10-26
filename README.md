@@ -49,7 +49,7 @@ To spawn a new entity with the given ids:
 ```rust
 // spawn_entity macro accepts the world as the first parameter, and the 
 // components to add to the entity as the other parameters
-let id = spawn_entity!(world, Pos { x: 0, y: 0 });
+let id = spawn_entity!(world, Position { x: 0, y: 0 });
 ```
 
 ## Systems
@@ -66,7 +66,7 @@ fn print_positions(world: &World) {
 }
 
 // mutable system
-#[system(pos: Pos, vel: Vel)]
+#[system(pos: Position, vel: Vel)]
 fn move_entities(world: &mut World) {
   pos.x += vel.x;
   pos.y += vel.y
@@ -105,7 +105,7 @@ return type, `Ok(())` will be returned at the end of the system.
 use ggez::{graphics, Context};
 use glam::Vec2;
 
-#[system(pos: Pos)]
+#[system(pos: Position)]
 fn draw_pos(world: &World, canvas: &mut graphics::Canvas, ctx: &mut Context) -> GameResult<()> {
   let rectangle = graphics::Mesh::new_rectangle(
     ctx,
