@@ -104,7 +104,7 @@ fn query_names(i: usize) -> (syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn
         syn::Ident::new(&format!("query{i}"), proc_macro2::Span::call_site()),
         syn::Ident::new(&format!("query_ids{i}"), proc_macro2::Span::call_site()),
         syn::Ident::new(&format!("query_mut{i}"), proc_macro2::Span::call_site()),
-        syn::Ident::new(&format!("query_mut_id{i}"), proc_macro2::Span::call_site()),
+        syn::Ident::new(&format!("query_mut_ids{i}"), proc_macro2::Span::call_site()),
         syn::Ident::new(&format!("query_mut_ptr{i}"), proc_macro2::Span::call_site()),
         syn::Ident::new(&format!("query_mut_ptr_ids{i}"), proc_macro2::Span::call_site()),
     )

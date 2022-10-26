@@ -134,7 +134,7 @@ fn mut_query_after_set_component() {
         Pos { x: 0, y: 0 }
     );
     
-    let query = world.query_mut_id1::<Pos>();
+    let query = world.query_mut_ids1::<Pos>();
     query.for_each(|(id, pos)| {
         assert_eq!(*pos, Pos { x: 0, y: 0 });
         
