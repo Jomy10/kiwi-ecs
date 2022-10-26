@@ -101,50 +101,83 @@ fn move_circles(world: &mut World, fixed_time: f64, max_position: f64) {
     pos.y += vel.y * fixed_time;
     
     // Bump into the bounding rect
-    if (*pos).x <= 0.0 || (*pos).x >= max_position {
-        (*vel).x = -(*vel).x;
+    if pos.x <= 0.0 || pos.x >= max_position {
+        vel.x = -vel.x;
     }
-    if (*pos).y <= 0.0 || (*pos).y >= max_position {
-        (*vel).y = -(*vel).y;
+    if pos.y <= 0.0 || pos.y >= max_position {
+        vel.y = -vel.y;
     }
 }
 
 unsafe fn check_collisions(world: &mut World, collision_limit: u32, death_count: &mut u32) {
     // let (ids, pos, col): (Vec<EntityId>, Vec<*mut Pos>, Vec<*mut Collider>) = world.query_mut_ptr_ids2::<Pos, Collider>();
-    let (ids, pos, col) = query_mut!(world, EntityId, Pos, Collider);
-    let mut dead = HashSet::<usize>::new();
-    for i in 0..pos.len() {
-        let (pos1, col1): (*mut Pos, *mut Collider) = (pos[i], col[i]);
-        for j in 0..pos.len() {
-            if i == j { continue }
-            if dead.contains(&i) || dead.contains(&j) {
-                continue;
+    let mut dead = HashSet::<EntityId>::new();
+    let world_ptr: *const World = &*world;
+    // for i in 0..pos.len() {
+    // query.clone()
+    //     .zip(query)
+    //     .filter(|((id1, _, _), (id2, _, _))| {
+    //         id1 == id2
+    //     })
+    //     .for_each(|((id1, pos1, col1), (id2, pos2, col2))| {
+    //     });
+    
+    let mut query: Vec<(EntityId, &mut Pos, &mut Collider)> = query_mut!(world, EntityId, Pos, Collider).collect();
+    let query_ptr: *mut Vec<_> = &mut query;
+    
+    (*query_ptr).iter_mut().for_each(|(id1, pos1, col1)| {
+        query.iter().for_each(|(id2, pos2, col2)| {
+            if id1 != id2 && !dead.contains(&id1) && !dead.contains(&id2) {
+                let dx = pos1.x - pos2.x;
+                let dy = pos2.y - pos2.y;
+                let dist_sq = (dx * dx) + (dy * dy);
+                
+                let dr = col1.radius - col2.radius;
+                let dr_sq = dr * dr;
+                
+                if dr_sq > dist_sq {
+                    (*col1).count += 1;
+                }
+                
+                // kill and spawn one
+                if collision_limit > 0 && col1.count > collision_limit {
+                    *death_count += 1;
+                    dead.insert(*id1);
+                }
             }
+        });
+    });
+    
+    // query.for_each(|(id, pos1, col1)| {
+    //         if id == j { continue }
+    //         if dead.contains(&i) || dead.contains(&j) {
+    //             continue;
+    //         }
             
-            let (pos2, col2): (*const Pos, *const Collider) = (pos[j], col[j]);
+    //         let (pos2, col2): (*const Pos, *const Collider) = (pos[j], col[j]);
             
-            let dx = (*pos1).x - (*pos2).x;
-            let dy = (*pos2).y - (*pos2).y;
-            let dist_sq = (dx * dx) + (dy * dy);
+    //         let dx = (*pos1).x - (*pos2).x;
+    //         let dy = (*pos2).y - (*pos2).y;
+    //         let dist_sq = (dx * dx) + (dy * dy);
             
-            let dr = (*col1).radius - (*col2).radius;
-            let dr_sq = dr *dr;
+    //         let dr = (*col1).radius - (*col2).radius;
+    //         let dr_sq = dr *dr;
             
-            if dr_sq > dist_sq {
-                (*col1).count += 1;
-            }
+    //         if dr_sq > dist_sq {
+    //             (*col1).count += 1;
+    //         }
             
-            // Kill and spawn one
-            if collision_limit > 0 && (*col1).count > collision_limit {
-                *death_count += 1;
-                dead.insert(i);
-            }
-        }
-    } // outer loop
+    //         // Kill and spawn one
+    //         if collision_limit > 0 && (*col1).count > collision_limit {
+    //             *death_count += 1;
+    //             dead.insert(i);
+    //         }
+    //     }
+    // }); // outer loop
     
     // Kill entities
-    dead.iter().for_each(|dead_idx| {
-        world.kill(ids[*dead_idx]);
+    dead.iter().for_each(|dead_id| {
+        world.kill(*dead_id);
     })
 }
 
