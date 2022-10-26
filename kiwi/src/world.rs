@@ -82,111 +82,6 @@ impl World {
     pub fn is_flag<C: Component>(&self) -> bool {
         return std::mem::size_of::<C>() == 0;
     }
-
-    pub fn temp_query1<'a, A: Component + 'static>(&'a self) -> impl std::iter::Iterator<Item = &'a A> + 'a {
-        let archetypes_a = A::get_archetypes();
-        
-        (*archetypes_a).clone().into_iter()
-            .flat_map(|arch_id| {
-                let archetype = self.arch_store.get_archetype(arch_id);
-                let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
-
-                unsafe { archetype.get_all_components::<A>(entities) }
-            })
-    }
-
-    pub fn temp_query
-        <
-            'a,
-            A: Component + 'static,
-            B: Component + 'static,
-        >
-        (&'a self)
-        -> impl std::iter::Iterator<Item = (&'a A, &'a B)> + 'a
-    {
-        let archetypes_a = A::get_archetypes();
-        let archetypes_b = B::get_archetypes();
-        
-        (*archetypes_a).clone().into_iter()
-            .filter(move |elem| archetypes_b.contains(elem))
-            .flat_map(|arch_id| {
-                let archetype = self.arch_store.get_archetype(arch_id);
-                let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
-                
-                std::iter::zip(
-                    unsafe { archetype.get_all_components::<A>(entities.clone()) },
-                    unsafe { archetype.get_all_components::<B>(entities) }
-                )
-            })
-    }
-    
-    pub fn temp_query_mut<
-        'a,
-        A: Component + 'static,
-        B: Component + 'static,
-    >(&'a mut self) -> impl std::iter::Iterator<Item = (&'a mut A, &'a mut B)> + 'a
-    {
-        let archetypes_a = A::get_archetypes();
-        let archetypes_b = B::get_archetypes();
-        
-        (*archetypes_a).clone().into_iter()
-            .filter(move |elem| archetypes_b.contains(elem))
-            .flat_map(|arch_id| {
-                let archetype: *mut crate::arch::Archetype = self.arch_store.get_archetype_mut(arch_id);
-                let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows(&self.entity_store).collect() };
-                
-                std::iter::zip(
-                    unsafe { (*archetype).get_all_components_mut::<A>(entities.clone()) },
-                    unsafe { (*archetype).get_all_components_mut::<B>(entities.clone()) }
-                )
-            })
-    }
-
-    pub fn temp_query_mut_id<
-        'a,
-        A: Component + 'static,
-    >(&'a mut self) -> impl std::iter::Iterator<Item = (EntityId, &'a mut A)> + 'a
-    {
-        let archetypes_a = A::get_archetypes();
-        
-        (*archetypes_a).clone().into_iter()
-            .flat_map(|arch_id| {
-                let archetype: *mut crate::arch::Archetype = self.arch_store.get_archetype_mut(arch_id);
-                let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows(&self.entity_store).collect() };
-                
-                std::iter::zip(
-                    entities.clone().into_iter(),
-                    unsafe { (*archetype).get_all_components_mut::<A>(entities) },
-                )
-            })
-    }
-    
-    pub fn temp_query3<
-        'a,
-        A: Component + 'static,
-        B: Component + 'static,
-        C: Component + 'static,
-    > (&'a self) -> impl std::iter::Iterator<Item = (&'a A, &'a B, &'a C)> + 'a
-    {
-        let archetypes_a = A::get_archetypes();
-        let archetypes_b = B::get_archetypes();
-        let archetypes_c = C::get_archetypes();
-        
-        archetypes_a.clone().into_iter()
-            .filter(move |elem| archetypes_b.contains(elem))
-            .filter(move |elem| archetypes_c.contains(elem))
-            .flat_map(|arch_id| {
-                let archetype = self.arch_store.get_archetype(arch_id);
-                let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
-                std::iter::zip(
-                    unsafe { archetype.get_all_components::<A>(entities.clone()) },
-                    std::iter::zip(
-                        unsafe { archetype.get_all_components::<B>(entities.clone()) },
-                        unsafe { archetype.get_all_components::<C>(entities) },
-                    )
-                )
-            }).map(|tuple| (tuple.0, tuple.1.0, tuple.1.1))
-    }
 }
 
 // Queries
@@ -201,7 +96,4 @@ impl World {
     }
     
     kiwi_internal_macros::gen_query!();
-    
-    
-    
 }

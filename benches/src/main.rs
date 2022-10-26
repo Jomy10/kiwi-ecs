@@ -30,7 +30,7 @@ fn main() {
     for _ in 0..ITER_COUNT {
         let start = SystemTime::now();
         
-        let query = world.temp_query::<Pos, Vel>();
+        let query = world.query2::<Pos, Vel>();
         query.for_each(|(pos, vel)| {
             let _ = pos;
             let _ = vel;

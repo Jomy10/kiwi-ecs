@@ -50,7 +50,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                 #filter_iterator
                     .flat_map(|arch_id| {
                         let archetype = self.arch_store.get_archetype(arch_id);
-                        let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
+                        // let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
                         
                         #zip_reg
                     })
@@ -188,27 +188,41 @@ fn filter_iterator(generic_names: &Vec<syn::Ident>, i: usize) -> TokenStream2 {
 }
 
 fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType, query_ids: bool) -> TokenStream2 {
+    let archetype = match ty {
+        GetComponentsType::Regular => quote! { archetype },
+        GetComponentsType::Mut => quote! { (*archetype) },
+    };
+    
+    let id_iter = if let GetComponentsType::Mut = ty {
+                quote! {
+                    unsafe {
+                        #archetype.get_arch_rows(&self.entity_store)
+                    }
+                }
+            } else {
+                quote! {
+                    #archetype.get_arch_rows(&self.entity_store)
+                }
+            };
+
     if generic_names.len() == 1 {
         let generic_name = &generic_names[0];
-        let archetype = match ty {
-            GetComponentsType::Regular => quote! { archetype },
-            GetComponentsType::Mut => quote! { (*archetype) },
-        };
         let func_name = match ty {
             GetComponentsType::Regular => quote! { get_all_components },
             GetComponentsType::Mut => quote! { get_all_components_mut },
         };
         
         if query_ids {
+            
             quote! {
                 ::std::iter::zip(
-                    entities.clone().into_iter(),
-                    unsafe { #archetype.#func_name ::<#generic_name>(entities) }
+                    #id_iter,
+                    unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)) }
                 )
             }
         } else {
             quote! {
-                unsafe { #archetype.#func_name ::<#generic_name>(entities) }
+                unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)) }
             }
         }
     } else {
@@ -216,7 +230,7 @@ fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType, query_ids: bool) 
         if query_ids {
             quote! {
                 ::std::iter::zip(
-                    entities.clone().into_iter(),
+                    #id_iter,
                     #zips
                 )
             }
@@ -256,14 +270,14 @@ fn get_next_zip(generic_names: &Vec<syn::Ident>, i: usize, ty: GetComponentsType
         Some(next) => {
             quote! {
                 ::std::iter::zip(
-                    unsafe { #archetype.#func_name ::<#generic_name>(entities.clone()) },
+                    unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)/*entities.clone()*/) },
                     #next
                 )
             }
         },
         None => {
             quote! {
-                unsafe { #archetype.#func_name ::<#generic_name>(entities) }
+                unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)/*entities*/) }
             }
         }
     });

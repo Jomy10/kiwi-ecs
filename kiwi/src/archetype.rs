@@ -148,12 +148,13 @@ impl Archetype {
         <'a, T: Component + 'static>
         (
             &'a self, 
-            ent_ids: Vec<ArchRowId>
+            ent_ids: impl std::iter::Iterator<Item = ArchRowId>
         )
         -> impl std::iter::Iterator<Item = &'a T>
     {
         let component_col_wrap = self.components.get(&T::id())
-            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
+            .unwrap(); // TODO: panic message
+            // .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
         
         let component_col = component_col_wrap.val.as_ref().unwrap_unchecked();
         let comps_ptr: *const MaybeUninit<u8> = component_col.components.as_ptr();
@@ -165,23 +166,24 @@ impl Archetype {
                 comp.assume_init_ref()
             })
     }
-    
+
     #[inline]
     pub(crate) unsafe fn get_all_components_mut<
         'a, T: Component + 'static
     >(
         &'a mut self,
-        ent_ids: Vec<ArchRowId>,
+        ent_ids: impl std::iter::Iterator<Item = ArchRowId>,
     ) -> impl std::iter::Iterator<Item = &'a mut T> 
     {
         let component_col_wrap = self.components.get_mut(&T::id())
-            .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
+            .unwrap(); // TODO: panic message
+            // .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
         
         let component_col = component_col_wrap.val.as_mut().unwrap_unchecked();
         let comps_ptr: *mut MaybeUninit<u8> = component_col.components.as_mut_ptr();
         let comps_ptr: *mut MaybeUninit<T> = comps_ptr.cast();
         
-        ent_ids.into_iter()
+        ent_ids
             .map(move |ent_id| {
                 let comp = comps_ptr.offset(ent_id as isize).as_mut().unwrap_unchecked();
                 comp.assume_init_mut()
