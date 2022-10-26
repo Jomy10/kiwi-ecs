@@ -32,12 +32,11 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     // attribute params
     let attrs = parse_system_attr(attr);
     
+    // component names + entity id name
     let mut param_vars = Vec::new();
-    // Vec<*mut T> | Vec<&T>
-    let mut param_vec_types = Vec::new();
-    // T
+    // component types
     let mut param_types = Vec::new();
-    let mut entity_id: Option<Param> = None;
+    let mut entity_id: bool = false;
     
     for attr in attrs {
         match attr {
@@ -47,49 +46,29 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 
                 param_vars.push(name);
                 param_types.push(ty.clone());
-                
-                match is_world_mutable {
-                    true => {
-                        param_vec_types.push(quote! {
-                            Vec<*mut #ty>
-                        });
-                    }
-                    false => {
-                        param_vec_types.push(quote! {
-                            Vec<&#ty>
-                        });
-                    }
-                }
             },
             ParamType::EntityId(ident) => {
-                entity_id = Some(ident);
+                let name = syn::Ident::new(&ident.var_name.to_string(), proc_macro2::Span::call_site());
+                let mut new = vec![name];
+                new.append(&mut param_vars);
+                param_vars = new; // id is always first variable in query result
+                entity_id = true;
             },
         }
     }
     
-    let first_param_var = &param_vars[0];
-    let mut param_vars_init = param_vars.clone();
-    
-    let id_idx: TokenStream2 = if let Some(entity_id) = &entity_id {
-        param_vars_init.insert(0, proc_macro2::Ident::new(&entity_id.var_name.to_string(), proc_macro2::Span::call_site()));
-        param_vec_types.insert(0, quote! { Vec<kiwi_ecs::EntityId> });
-        let id_ident = syn::Ident::new(&entity_id.var_name.to_string(), proc_macro2::Span::call_site());
-        quote! { let #id_ident = #id_ident[i]; }
-    } else {
-        quote!{}
-    };
-    let count = param_vars.len();
+    let count = param_types.len();
      
     let query_func = match is_world_mutable {
         true => {
-            if entity_id.is_some() {
-                syn::Ident::new(&format!("query_mut_ptr_ids{count}"), proc_macro2::Span::call_site())
+            if entity_id == true {
+                syn::Ident::new(&format!("query_mut_ids{count}"), proc_macro2::Span::call_site())
             } else {
-                syn::Ident::new(&format!("query_mut_ptr{count}"), proc_macro2::Span::call_site())
+                syn::Ident::new(&format!("query_mut{count}"), proc_macro2::Span::call_site())
             }
         }
         false => {
-            if entity_id.is_some() {
+            if entity_id == true {
                 syn::Ident::new(&format!("query_ids{count}"), proc_macro2::Span::call_site())
             } else {
                 syn::Ident::new(&format!("query{count}"), proc_macro2::Span::call_site())
@@ -97,43 +76,14 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     
-    for i in 0..param_types.len() {
-        for j in 0..param_types.len() {
-            if i == j { continue }
-            
-            if param_types[i].to_string() == param_types[j].to_string() {
-                panic!("Can't query on duplicate types {}", param_types[i]);
-            }
-        }
-    }
-    
-    let param_vars_init: TokenStream2 = if param_vars_init.len() == 1 {
-        quote! { let #(#param_vars_init)*: #(#param_vec_types)* = unsafe { #world_name_ident.#query_func::<#(#param_types,)*>() }; }
-    } else {
-        quote! { let (#(#param_vars_init,)*): (#(#param_vec_types,)*) = unsafe { #world_name_ident.#query_func::<#(#param_types,)*>() }; }
-    };
-    
-    let query_body: TokenStream2 = if is_world_mutable {
-        quote! {
-            #(let #param_vars = #param_vars[i];)*
-            #(let #param_vars = unsafe { &mut*#param_vars };)*
-        }
-    } else {
-        quote! {
-            #(let #param_vars = #param_vars[i];)*
-        }
-    };
-    
     let ts = TokenStream::from(quote! {
         #(#sys_attr)*
         #sys_vis #sys_sig {
-            #param_vars_init
-            for i in 0..#first_param_var.len() {
-                #id_idx
-                #query_body
-                
+            let __query = #world_name_ident.#query_func ::<#(#param_types,)*>();
+            
+            __query.for_each(|(#(#param_vars,)*)| {
                 #func_body
-            }
+            });
             
             #return_ok
         }  

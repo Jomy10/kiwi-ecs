@@ -117,7 +117,7 @@ fn mut_query() {
     world.spawn_entity2(Pos { x: 6, y: 7}, Vel { x: 8, y: 9 });
     
     let q  = world.query_mut2::<Vel, Pos>();
-    q.into_iter().for_each(|(v, _)| v.x = 1);
+    q.for_each(|(v, _)| v.x = 1);
     
     let mut components = world.query2::<Pos, Vel>();
     assert_eq!(*components.next().unwrap().1, Vel{x: 1, y: 9})
@@ -203,37 +203,54 @@ fn mut_query_after_set_component() {
 //     });
 // }
 
-// mod example {
-//     use super::*;
+#[test]
+fn system_macro_ids() {
+    pos_comp!();
     
-//     #[derive(Component, PartialEq, Debug)]
-//     struct Pos {
-//         x: u32, y: u32
-//     }
-//     #[derive(Component)]
-//     struct Vel {
-//         x: u32, y: u32
-//     }
+    let mut world = World::new();
+    
+    spawn_entity!(world, Pos { x: 0, y: 1 });
+    
+    #[system(id: EntityId, pos: Pos)]
+    fn test_macro(world: &World) {
+        assert_eq!(id, 0);
+        assert_eq!(*pos, Pos { x: 0, y: 1 });
+    }
+    
+    test_macro(&world);
+}
 
-//     #[test]
-//     fn example() {
-//         let mut world = World::new();
-        
-//         for _ in 0..10 {
-//             spawn_entity!(world, Pos { x: 0, y: 0 }, Vel { x: 1, y: 1 });
-//         }
-        
-//         move_entities(&mut world);
-        
-//         let components = query!(world, Pos);
-//         for component in components {
-//             assert_eq!(*component, Pos { x: 1, y: 1 });
-//         }
-//     }
+mod example {
+    use super::*;
     
-//     #[system(pos: Pos, vel: Vel)]
-//     fn move_entities(world: &mut World) {
-//         pos.x += vel.x;
-//         pos.y += vel.y;
-//     }
-// }
+    #[derive(Component, PartialEq, Debug)]
+    struct Pos {
+        x: u32, y: u32
+    }
+    #[derive(Component)]
+    struct Vel {
+        x: u32, y: u32
+    }
+
+    #[test]
+    fn example() {
+        let mut world = World::new();
+        
+        for _ in 0..10 {
+            spawn_entity!(world, Pos { x: 0, y: 0 }, Vel { x: 1, y: 1 });
+        }
+        
+        move_entities(&mut world);
+        
+        let components = query!(world, Pos);
+        for component in components {
+            assert_eq!(*component, Pos { x: 1, y: 1 });
+        }
+    }
+    
+    #[system(pos: Pos, vel: Vel)]
+    fn move_entities(world: &mut World) {
+        pos.x += vel.x;
+        pos.y += vel.y;
+    }
+}

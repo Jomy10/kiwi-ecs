@@ -28,7 +28,12 @@ pub fn query(item: TokenStream) -> TokenStream {
 
 #[proc_macro]
 pub fn query_mut(item: TokenStream) -> TokenStream {
-    crate::query::gen_query_tokens(item, "query_mut_ptr")
+    crate::query::gen_query_tokens(item, "query_mut")
+}
+
+#[proc_macro]
+pub fn query_mut_ptr(_item: TokenStream) -> TokenStream {
+    unimplemented!("Mut qqueries with pointers is currently not supported. These will be reintroduced in version 1.0.4")
 }
 
 //==============

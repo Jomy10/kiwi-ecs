@@ -189,6 +189,7 @@ impl Archetype {
     }
     
     #[inline]
+    #[allow(unused)] // TODO: use again in query_mut_ptr
     /// Get all components of type `T` for the entities with ids `ent_ids`
     pub(crate) unsafe fn get_all_components_mut_ptr<T: Component + 'static>(&mut self, ent_ids: &Vec<EntityId>) -> Vec<*mut T> {
         let component_col_wrap = self.components.get_mut(&T::id())
@@ -212,18 +213,17 @@ impl Archetype {
     #[inline]
     pub(crate) fn get_arch_rows<'a>(&'a self, ent_store: &'a EntityStore) 
         -> impl std::iter::Iterator<Item = ArchRowId> + 'a 
-        // -> &'a Vec<ArchRowId>
     {
         get_entity_ids_enumerate_iter!(self, ent_store)
             .map(|(row, _)| row as u32)
     }
     
-    #[inline]
-    pub(crate) fn get_rows_and_ids(&self, ent_store: &EntityStore) -> Vec<(ArchRowId, EntityId)> {
-        get_entity_ids_enumerate_iter!(self, ent_store)
-            .map(|(row, id)| (row as u32, *id))
-            .collect()
-    }
+    // #[inline]
+    // pub(crate) fn get_rows_and_ids(&self, ent_store: &EntityStore) -> Vec<(ArchRowId, EntityId)> {
+    //     get_entity_ids_enumerate_iter!(self, ent_store)
+    //         .map(|(row, id)| (row as u32, *id))
+    //         .collect()
+    // }
     
     #[inline]
     pub(crate) fn has_component(&self, id: ComponentId) -> bool {

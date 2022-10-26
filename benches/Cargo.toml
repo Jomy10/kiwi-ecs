@@ -6,6 +6,3 @@ publish = false
 
 [dependencies]
 kiwi-ecs = { path = "../kiwi" }
-
-[profile.release]
-debug = true
