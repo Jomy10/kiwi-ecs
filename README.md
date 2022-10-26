@@ -11,7 +11,7 @@
 # Cargo.toml
 
 [dependecies]
-kiwi-ecs = "1.0"
+kiwi-ecs = "1.1"
 ```
 
 ```rust
@@ -85,8 +85,9 @@ pub fn main() {
   //--snip
   
   // Call the systems
-  move_entities(&mut world);
   print_positions(&world);
+  move_entities(&mut world);
+  print_entity_ids(&world);
 }
 ```
 
@@ -131,16 +132,21 @@ pub fn main() {
   
   //--snip
   
-  let components: Vec<&Position> = query!(world, Position);
-  let components: (Vec<*mut Position>, Vec<*mut Vel>) = unsafe { query_mut!(world, Position, Vel) };
-  let components: (Vec<EntityId>, Vec<&Position>) = query!(world, EntityId, Position);
+  let query_result = query!(world, Position);
+  let query_result = query_mut!(world, Position, Vel);
+  let query_result = query!(world, EntityId, Position);
   
   // You can now loop over the components
+  query_result.for_each(|components| {
+    // ...
+  });
 }
 ```
 
+<!--
 Note on safety: the `query_mut` macro is unsafe, because it can cause undefined behaviour
 if two of the same component types are passed in.
+-->
 
 # License
 
