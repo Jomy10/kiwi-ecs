@@ -11,7 +11,7 @@
 # Cargo.toml
 
 [dependecies]
-kiwi-ecs = "1.1"
+kiwi-ecs = "1.2"
 ```
 
 ```rust
@@ -42,14 +42,34 @@ struct Position {
 }
 ```
 
+## Flags
+
+Unit structs can't be used as Components, this is where you would have to use a flag.
+Flags are represented as an enum:
+
+```rust
+#[flags]
+enum Flags {
+  Player,
+  Enemy,
+  Ground,
+}
+```
+
 ## Entities
 
-To spawn a new entity with the given ids:
+To spawn a new entity with the given components:
 
 ```rust
 // spawn_entity macro accepts the world as the first parameter, and the 
 // components to add to the entity as the other parameters
-let id = spawn_entity!(world, Pos { x: 0, y: 0 });
+let entity_id = spawn_entity!(world, Position { x: 0, y: 0 });
+```
+
+You can give an entity a flag using the `set_flag` method:
+
+```rust
+world.set_flag(entity_id, Flags::Player);
 ```
 
 ## Systems
@@ -66,7 +86,7 @@ fn print_positions(world: &World) {
 }
 
 // mutable system
-#[system(pos: Pos, vel: Vel)]
+#[system(pos: Position, vel: Vel)]
 fn move_entities(world: &mut World) {
   pos.x += vel.x;
   pos.y += vel.y
@@ -105,7 +125,7 @@ return type, `Ok(())` will be returned at the end of the system.
 use ggez::{graphics, Context};
 use glam::Vec2;
 
-#[system(pos: Pos)]
+#[system(pos: Position)]
 fn draw_pos(world: &World, canvas: &mut graphics::Canvas, ctx: &mut Context) -> GameResult<()> {
   let rectangle = graphics::Mesh::new_rectangle(
     ctx,
@@ -133,7 +153,7 @@ pub fn main() {
   //--snip
   
   let query_result = query!(world, Position);
-  let query_result = query_mut!(world, Position, Vel);
+  let query_result = query_mut!(world, Position, Velocity);
   let query_result = query!(world, EntityId, Position);
   
   // You can now loop over the components
@@ -147,6 +167,26 @@ pub fn main() {
 Note on safety: the `query_mut` macro is unsafe, because it can cause undefined behaviour
 if two of the same component types are passed in.
 -->
+
+### Flags in queries
+
+You can further filter queries using flags:
+
+```rust
+#[system(id: EntityId, pos: Position)]
+fn on_player(world: &World) {
+  if world.has_flag(id, Flags::Player) {
+    // ...
+  }
+}
+
+let query_result = query!(world, EntityId, Position)
+  .filter(|(id, _pos)| world.has_flag(*id, Flags::Player));
+```
+
+# Contributing
+
+Contributors are always welcome. If you find any bugs, feel free to open an issue. If you feel like it, PRs are also appreciated!
 
 # License
 

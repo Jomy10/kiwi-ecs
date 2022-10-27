@@ -39,27 +39,18 @@ impl World {
     ///
     /// # Panics
     /// if the component does not exist for the given entity
-    ///
-    /// # Safety
-    /// No checks are performed wheter the component is a flag (empty struct).
-    ///
-    /// To check whether the entity has a flag component, use the `has_component`
-    /// function defined on `World`.
-    pub unsafe fn get_component<T: Component + 'static>(&self, entity: EntityId) -> &T {
+    pub fn get_component<T: Component + 'static>(&self, entity: EntityId) -> &T {
         let entity = &self.entity_store.entities()[entity as usize];
-        self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row)
+        unsafe { self.arch_store.get_archetype(entity.arch_id).get_component::<T>(entity.arch_row) }
     }
     
     /// Returns a mutable referencce to the component of type `T` for entity with id `entity`
     ///
-    /// # Safety
-    /// No checks are performed wheter the component is a flag (empty struct).
-    ///
-    /// To check whether the entity has a flag component, use the `has_component`
-    /// function defined on `World`.
-    pub unsafe fn get_component_mut<T: Component + 'static>(&mut self, entity: EntityId) -> &mut T {
+    /// # Panics
+    /// if the component does not exist for the given entity
+    pub fn get_component_mut<T: Component + 'static>(&mut self, entity: EntityId) -> &mut T {
         let entity = &self.entity_store.entities()[entity as usize];
-        self.arch_store.get_archetype_mut(entity.arch_id).get_component_mut::<T>(entity.arch_row)
+        unsafe { self.arch_store.get_archetype_mut(entity.arch_id).get_component_mut::<T>(entity.arch_row) }
     }
     
     /// Set an entity's component.
@@ -71,7 +62,7 @@ impl World {
         self.arch_store.get_archetype_mut(entity.arch_id).set_component(entity.arch_row, comp);
     }
     
-    /// Check whether an enttity contains the given component
+    /// Check whether an entity contains the given component
     pub fn has_component<C: Component>(&self, entity: EntityId) -> bool {
         let entity = &self.entity_store.entities()[entity as usize];
         self.arch_store.get_archetype(entity.arch_id).has_component(C::id())

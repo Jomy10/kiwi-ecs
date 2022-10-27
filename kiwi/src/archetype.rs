@@ -116,7 +116,7 @@ impl Archetype {
     /// Get component of type `T` for entity with arch row `entity_id`
     ///
     /// # Safety
-    /// No checks are performed whether the component is a flag
+    /// No checks are performed whether the component is a unit struct
     pub(crate) unsafe fn get_component<T: Component + 'static>(&self, entity_id: ArchRowId) -> &T {
         let component_col_wrap = self.components.get(&T::id())
             .expect(&format!("Component {} does not exist for entity with id {}", std::any::type_name::<T>(), entity_id)); // TODO: entity id is not right
