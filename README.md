@@ -11,7 +11,7 @@
 # Cargo.toml
 
 [dependecies]
-kiwi-ecs = "1.1"
+kiwi-ecs = "1.2"
 ```
 
 ```rust
