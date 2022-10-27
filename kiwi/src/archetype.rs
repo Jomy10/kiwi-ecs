@@ -4,14 +4,6 @@ use std::collections::HashMap;
 use crate::component::{Component, ComponentId};
 use crate::entity::{EntityId, EntityStore};
 
-macro_rules! get_entity_ids_enumerate_iter {
-    ($arch:tt, $ent_store:tt) => {
-        $arch.entities.iter()
-            .enumerate()
-            .filter(|(_, id)| $ent_store.is_alive(**id))
-    }
-}
-
 //=====================
 // ID Type
 //=====================
@@ -210,11 +202,24 @@ impl Archetype {
     }
     
     #[inline]
-    pub(crate) fn get_arch_rows<'a>(&'a self, ent_store: &'a EntityStore) 
-        -> impl std::iter::Iterator<Item = ArchRowId> + 'a 
+    pub(crate) fn get_arch_rows<'a, 'b>(&'a self, ent_store: &'b EntityStore) 
+        -> impl std::iter::Iterator<Item = ArchRowId> + 'a
+        where 'b: 'a
     {
-        get_entity_ids_enumerate_iter!(self, ent_store)
+        self.entities.iter()
+            .enumerate()
+            .filter(|(_, id)| ent_store.is_alive(**id))
             .map(|(row, _)| row as u32)
+    }
+    
+    #[inline]
+    pub(crate) fn get_entity_ids<'a, 'b>(&'a self, ent_store: &'b EntityStore)
+        -> impl std::iter::Iterator<Item = EntityId> + 'a
+        where 'b: 'a
+    {
+        self.entities.iter()
+            .filter(|id| ent_store.is_alive(**id))
+            .map(|id| *id)
     }
     
     // #[inline]

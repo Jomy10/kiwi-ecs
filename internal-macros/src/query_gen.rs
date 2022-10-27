@@ -194,16 +194,16 @@ fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType, query_ids: bool) 
     };
     
     let id_iter = if let GetComponentsType::Mut = ty {
-                quote! {
-                    unsafe {
-                        #archetype.get_arch_rows(&self.entity_store)
-                    }
-                }
-            } else {
-                quote! {
-                    #archetype.get_arch_rows(&self.entity_store)
-                }
-            };
+        quote! {
+            unsafe {
+                #archetype.get_entity_ids(&self.entity_store)
+            }
+        }
+    } else {
+        quote! {
+            #archetype.get_entity_ids(&self.entity_store)
+        }
+    };
 
     if generic_names.len() == 1 {
         let generic_name = &generic_names[0];

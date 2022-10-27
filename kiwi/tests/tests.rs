@@ -72,7 +72,7 @@ fn get_component() {
     
     let mut world = World::new();
     let ent_id = world.spawn_entity1(Pos{x: 1, y: 0});
-    let comp: &Pos = unsafe { world.get_component(ent_id) };
+    let comp: &Pos = world.get_component(ent_id);
     assert_eq!(*comp, Pos{x: 1, y: 0});
 }
 
@@ -236,6 +236,37 @@ fn system_macro_ids() {
     }
     
     test_macro(&world);
+}
+
+macro_rules! query_ids_spawn_entity {
+    ($world: ident) => {
+        spawn_entity!($world,
+            Pos { x: 0, y: 0 },
+            Vel { x: 0, y: 0 },
+        )
+    }
+}
+
+#[test]
+fn query_ids() {
+    pos_comp!();
+    vel_comp!();
+    
+    let mut world = World::new();
+
+    query_ids_spawn_entity!(world);
+    // query_ids_spawn_entity!(world);
+    spawn_entity!(world, Pos { x: 0, y: 0 });
+    query_ids_spawn_entity!(world);
+    query_ids_spawn_entity!(world);
+    query_ids_spawn_entity!(world);
+    query_ids_spawn_entity!(world);
+    
+    let ids: Vec<EntityId> = query!(world, EntityId, Pos, Vel)
+        .map(|(id, _, _)| {
+            id
+        }).collect();
+    assert_eq!(ids, vec![0, 2, 3, 4, 5]);
 }
 
 mod example {

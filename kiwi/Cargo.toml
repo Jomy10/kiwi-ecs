@@ -1,6 +1,6 @@
 [package]
 name = "kiwi-ecs"
-version = "1.2.0"
+version = "1.2.1"
 edition = "2021"
 authors = ["Jonas Everaert"]
 license = "MIT"
@@ -10,5 +10,5 @@ keywords = ["ecs", "gamedev", "game-development", "game-dev"]
 categories = ["game-development"]
 
 [dependencies]
-kiwi-internal-macros = { path = "../internal-macros", version = "1.0.3" }
+kiwi-internal-macros = { path = "../internal-macros", version = "1.0.4" }
 kiwi-macros = { path = "../macros", version = "1.0.4" }
