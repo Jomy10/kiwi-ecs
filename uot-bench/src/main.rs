@@ -1,4 +1,4 @@
-use std::time::SystemTime;
+use std::time::Instant;
 
 use kiwi_ecs::*;
 use rand::prelude::*;
@@ -22,7 +22,7 @@ struct Collider {
 }
 
 fn main() {
-    bench(10000, 0);
+    bench(1000, 0);
 }
 
 fn bench(size: usize, collision_limit: u32) {
@@ -55,13 +55,10 @@ fn bench(size: usize, collision_limit: u32) {
     
     let fixed_time = 0.015;
     
-    #[allow(unused_assignments)] // Don't know why a warning occurs here
-    let mut start = SystemTime::now();
-    
     // let dt = SystemTime::now().duration_since(start);
     
     for iter_count in 0..iterations {
-        start = SystemTime::now();
+        let start = Instant::now();
         
         move_circles(&mut world, fixed_time, max_position);
         
@@ -70,7 +67,6 @@ fn bench(size: usize, collision_limit: u32) {
         unsafe { check_collisions(&mut world, collision_limit, &mut death_count); }
         
         // Spawn new entities, one per each entiy we deleted
-        // println!("Spawning {death_count} entities");
         for _ in 0..death_count {
             world.spawn_entity3(
                 Pos {
@@ -88,10 +84,8 @@ fn bench(size: usize, collision_limit: u32) {
             );
         }
         
-        let dt = SystemTime::now().duration_since(start).unwrap();
-        // println!("{} {:?} {}", iter_count, dt, death_count);
+        let dt = start.elapsed();
         println!("{} {:?}", iter_count, dt);
-        // dbg!(world.entity_count());
     }
 }
 

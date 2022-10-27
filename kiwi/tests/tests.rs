@@ -185,23 +185,41 @@ fn mut_query_after_set_component() {
 //     }}
 // }
 
-// #[test]
-// // Flags test
-// fn unit_struct() {
-//     #[derive(Component)]
-//     struct Flag;
+#[test]
+fn flags() {
+    pos_comp!();
     
-//     let mut world = World::new();
+    #[flags]
+    enum Flags {
+        Player,
+        Ground
+    }
     
-//     spawn_entity!(world,
-//         Flag,
-//     );
+    let mut world = World::new();
     
-//     let q = query!(world, Flag);
-//     q.for_each(|_f| {
-        
-//     });
-// }
+    let id1 = spawn_entity!(world,
+        Pos { x: 0, y: 1 }
+    );
+    world.set_flag(id1, Flags::Player);
+    
+    let id2 = spawn_entity!(world,
+        Pos { x: 0, y: 1 }
+    );
+    world.set_flag(id2, Flags::Ground);
+    
+    let q = query!(world,
+        EntityId,
+        Pos
+    ).filter(|(id, _)| {
+        world.has_flag(*id, Flags::Player)
+    });
+    
+    q.for_each(|(id, _)| assert_eq!(id, id1));
+    
+    let q = query!(world, EntityId, Pos);
+    q.filter(|(id, _)| world.has_flag(*id, Flags::Ground))
+        .for_each(|(id, _)| assert_eq!(id, id2));
+}
 
 #[test]
 fn system_macro_ids() {

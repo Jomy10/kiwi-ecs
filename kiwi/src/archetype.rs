@@ -96,14 +96,14 @@ impl Archetype {
     pub(crate) fn set_component<T: Component + 'static>(&mut self, entity_id: ArchRowId, component: T) {
         let component_col_wrap = self.components.get_mut(&T::id())
             .expect(&format!("Component {} does not exist for entity with id {}", std::any::type_name::<T>(), entity_id));
+
         if component_col_wrap.size == 0 {
             return;
         }
-        // size is 0, so is component column type
-        // let component_col = unsafe { component_col_wrap.column.as_component_mut() };
+        // size is not 0, so is component column type
         let component_col = unsafe { component_col_wrap.val.as_mut().unwrap_unchecked() };
         
-        // should makes the function safe + checks above
+        // should make the function safe + checks above (size != 0 && component exists for this archetype)
         if component_col.components.len() <= entity_id as usize * component_col_wrap.size {
             component_col.components.resize_with((entity_id as usize) * component_col_wrap.size + component_col_wrap.size, MaybeUninit::uninit);
         }
@@ -111,8 +111,6 @@ impl Archetype {
         let comps_ptr: *mut MaybeUninit<T> = comps_ptr.cast();
         unsafe { *(comps_ptr.offset(entity_id as isize)) = MaybeUninit::new(component); }
     }
-    
-    // TODO: get_component_mut
     
     #[inline]
     /// Get component of type `T` for entity with arch row `entity_id`
@@ -153,7 +151,7 @@ impl Archetype {
         -> impl std::iter::Iterator<Item = &'a T>
     {
         let component_col_wrap = self.components.get(&T::id())
-            .unwrap(); // TODO: panic message
+            .expect(&format!("Component {} does not exist for the given entities", std::any::type_name::<T>()));
             // .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
         
         let component_col = component_col_wrap.val.as_ref().unwrap_unchecked();
@@ -176,8 +174,7 @@ impl Archetype {
     ) -> impl std::iter::Iterator<Item = &'a mut T> 
     {
         let component_col_wrap = self.components.get_mut(&T::id())
-            .unwrap(); // TODO: panic message
-            // .expect(&format!("Component {} does not exist for the entities with ids {:?}", std::any::type_name::<T>(), ent_ids));
+            .expect(&format!("Component {} does not exist for the given entities", std::any::type_name::<T>()));
         
         let component_col = component_col_wrap.val.as_mut().unwrap_unchecked();
         let comps_ptr: *mut MaybeUninit<u8> = component_col.components.as_mut_ptr();

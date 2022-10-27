@@ -4,6 +4,7 @@ mod macros {
     pub use kiwi_macros::query_mut;
     pub use kiwi_macros::spawn_entity;
     pub use kiwi_macros::Component;
+    pub use kiwi_macros::flags;
 }
 pub use macros::*;
 
@@ -14,7 +15,7 @@ mod entity;
 pub use entity::EntityId;
 
 mod component;
-pub use component::{ComponentId, Component};
+pub use component::{ComponentId, Component, Flag, FlagId};
 
 mod archetype;
 mod arch_store;

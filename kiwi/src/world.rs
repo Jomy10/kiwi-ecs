@@ -1,8 +1,7 @@
 use crate::entity::{EntityStore, EntityId};
 use crate::arch::{ArchStore, NewEntityResult};
-use crate::component::Component;
+use crate::component::{Component, Flag};
 
-// TODO: remove pub
 pub struct World {
     entity_store: EntityStore,
     arch_store: ArchStore,
@@ -78,9 +77,12 @@ impl World {
         self.arch_store.get_archetype(entity.arch_id).has_component(C::id())
     }
     
-    /// Returns whether the component of type `C` is a flag (unit struct)
-    pub fn is_flag<C: Component>(&self) -> bool {
-        return std::mem::size_of::<C>() == 0;
+    pub fn has_flag<F: Flag>(&self, entity: EntityId, flag: F) -> bool {
+        self.entity_store.has_flag(entity, flag.into())
+    }
+    
+    pub fn set_flag<F: Flag>(&mut self, entity: EntityId, flag: F) {
+        self.entity_store.set_flag(entity, flag.into())
     }
 }
 

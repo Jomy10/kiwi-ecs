@@ -1,4 +1,5 @@
 use crate::arch::{ArchetypeId, ArchRowId};
+use crate::component::FlagId;
 
 pub type EntityId = u32;
 
@@ -11,6 +12,8 @@ pub(crate) struct EntityStore {
     next_id: EntityId,
     dead: Vec<u8>,
     entities: Vec<Entity>,
+    /// Flags for entities
+    flags: Vec<Vec<u8>>,
 }
 
 impl EntityStore {
@@ -18,7 +21,8 @@ impl EntityStore {
         Self {
             next_id: 0,
             dead: Vec::new(),
-            entities: Vec::new()
+            entities: Vec::new(),
+            flags: Vec::new(),
         }
     }
     
@@ -30,14 +34,6 @@ impl EntityStore {
         return entity_id;
     }
 
-    // #[inline]
-    // /// Spawn a new entity
-    // pub(crate) fn spawn(&mut self, arch_id: ArchetypeId, arch_row: ArchRowId) -> EntityId {
-    //     let id = self.new_id();
-    //     self.entities.push(Entity{arch_id, arch_row});
-    //     return id;
-    // }
-    
     #[inline]
     pub(crate) fn spawn_with_id(&mut self, ent_id: EntityId, arch_id: ArchetypeId, arch_row: ArchRowId) {
         if self.entities.len() <= ent_id as usize {
@@ -83,6 +79,44 @@ impl EntityStore {
     #[inline]
     pub(crate) fn entities(&self) -> &Vec<Entity> {
         &self.entities
+    }
+    
+    #[inline]
+    pub(crate) fn has_flag(&self, ent: EntityId, flag: FlagId) -> bool {
+        let idx = ent / 8;
+        let idx2 = ent % 8;
+        
+        match self.flags.get(flag as usize) {
+            Some(bitmaps) => {
+                match bitmaps.get(idx as usize) {
+                    Some(bitmap) => {
+                        return bitmap & (1 << idx2) == (1 << idx2);
+                    }
+                    None => {
+                        return false;
+                    }
+                }
+            }
+            None => {
+                return false;
+            }
+        }
+    }
+    
+    #[inline]
+    pub(crate) fn set_flag(&mut self, ent: EntityId, flag: FlagId) {
+        let idx = ent / 8;
+        let idx2 = ent % 8;
+        
+        if self.flags.len() <= flag as usize {
+            self.flags.resize_with(flag as usize + 1, Vec::new);
+        }
+        
+        if self.flags[flag as usize].len() <= idx as usize {
+            self.flags[flag as usize].resize_with(idx as usize + 1, || 0);
+        }
+        
+        self.flags[flag as usize][idx as usize] |= 1 << idx2;
     }
 }
 
