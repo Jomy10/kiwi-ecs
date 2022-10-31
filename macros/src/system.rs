@@ -76,12 +76,23 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     
+    let for_each_parameter = if param_vars.len() == 1 {
+        let param_var = &param_vars[0];
+        quote! {
+            #param_var
+        }
+    } else {
+        quote! {
+            (#(#param_vars,)*)
+        }
+    };
+    
     let ts = TokenStream::from(quote! {
         #(#sys_attr)*
         #sys_vis #sys_sig {
             let __query = #world_name_ident.#query_func ::<#(#param_types,)*>();
             
-            __query.for_each(|(#(#param_vars,)*)| {
+            __query.for_each(|#for_each_parameter| {
                 #func_body
             });
             

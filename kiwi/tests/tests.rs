@@ -269,6 +269,22 @@ fn query_ids() {
     assert_eq!(ids, vec![0, 2, 3, 4, 5]);
 }
 
+#[test]
+fn system_single_component() {
+    pos_comp!();
+    
+    #[system(pos: Pos)]
+    fn test_pos_system(world: &mut World) {
+        assert_eq!(*pos, Pos {x: 0, y: 1});
+    }
+    
+    let mut world = World::new();
+    
+    spawn_entity!(world, Pos { x: 0, y: 1 });
+    
+    test_pos_system(&mut world);
+}
+
 mod example {
     use super::*;
     
