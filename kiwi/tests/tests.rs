@@ -35,6 +35,8 @@ fn kill_entity_query() {
     assert_eq!(ids.len(), 0);
 }
 
+
+
 #[test]
 fn spawn_entity() {
     pos_comp!();
@@ -42,6 +44,42 @@ fn spawn_entity() {
     let mut world = World::new();
     world.spawn_entity0();
     world.spawn_entity1(Pos{x: 0, y: 0});
+}
+
+macro_rules! comp {
+    ($name: ident) => {
+        #[derive(Component)]
+        struct $name(u32);
+    }
+}
+
+#[allow(unused)]
+#[flags]
+enum Flags {
+    Flag1,
+    Flag2
+}
+
+#[test]
+fn spawn_multiple_entities() {
+    pos_comp!();
+    let mut world = World::new();
+    
+    comp!(C1);
+    comp!(C2);
+    comp!(C3);
+    comp!(C4);
+    comp!(C5);
+    comp!(C6);
+    
+    for _ in 0..1000 {
+        let id = spawn_entity!(world, Pos { x: 0, y: 0 }, C1(0), C2(0),C3(0),C4(0),C5(0),C6(0),);
+        world.set_flag(id, Flags::Flag1);
+        let id = spawn_entity!(world, Pos { x: 0, y: 0 }, C1(0), C2(0),C3(0),C4(0),C5(0),C6(0),);
+        world.set_flag(id, Flags::Flag1);
+    }
+    
+    assert_eq!(world.entity_count(), 2000);
 }
 
 #[test]

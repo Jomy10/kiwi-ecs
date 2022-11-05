@@ -56,18 +56,18 @@ pub(crate) struct Archetype {
 }
 
 impl Archetype {
-    pub(crate) fn new(components: &Vec<ComponentId>, sizes: &Vec<usize>) -> Self {
-        // let comps: Vec<ComponentColumn> = Vec::with_capacity(components.len());
-        let mut comps = HashMap::with_capacity(components.len());
-        // for component in components {
-        for i in 0..components.len() {
-            comps.insert(components[i], ComponentColumnWrapper::new(sizes[i]));
-        }
-        
+    /// When calling the function, the `Archetype::init` function should also be called
+    pub(crate) fn new(components: &Vec<ComponentId>) -> Self {
         Self {
-            components: comps,
+            components: HashMap::with_capacity(components.len()), //comps,
             available_ent_ids: Vec::new(),
             entities: Vec::new()
+        }
+    }
+    
+    pub(crate) fn init(&mut self, components: &Vec<ComponentId>, sizes: &Vec<usize>) {
+        for i in 0..sizes.len() {
+            self.components.insert(components[i], ComponentColumnWrapper::new(sizes[i]));
         }
     }
     
@@ -89,6 +89,7 @@ impl Archetype {
         let component_col_wrap = self.components.get_mut(&T::id())
             .expect(&format!("Component {} does not exist for entity with id {}", std::any::type_name::<T>(), entity_id));
 
+        // TODO: not necessary anymore (maybe keep in debug)
         if component_col_wrap.size == 0 {
             return;
         }
@@ -101,6 +102,7 @@ impl Archetype {
         }
         let comps_ptr: *mut MaybeUninit<u8> = component_col.components.as_mut_ptr();
         let comps_ptr: *mut MaybeUninit<T> = comps_ptr.cast();
+        
         unsafe { *(comps_ptr.offset(entity_id as isize)) = MaybeUninit::new(component); }
     }
     

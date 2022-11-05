@@ -106,7 +106,6 @@ fn move_circles(world: &mut World, fixed_time: f64, max_position: f64) {
 unsafe fn check_collisions(world: &mut World, collision_limit: u32, death_count: &mut u32) {
     // let (ids, pos, col): (Vec<EntityId>, Vec<*mut Pos>, Vec<*mut Collider>) = world.query_mut_ptr_ids2::<Pos, Collider>();
     let mut dead = HashSet::<EntityId>::new();
-    let world_ptr: *const World = &*world;
     // for i in 0..pos.len() {
     // query.clone()
     //     .zip(query)

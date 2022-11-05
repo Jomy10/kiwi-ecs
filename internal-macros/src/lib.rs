@@ -44,21 +44,42 @@ pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
             generics.insert(0, quote! {<});
             generics.push(quote! {>});
         }
+        let new_archetype_sizes_vector_elements = chars.iter().flat_map(|generic| {
+            quote! {
+                (<#generic>::id(), ::std::mem::size_of::<#generic>()),
+            }
+        }).collect::<TokenStream2>();
+        
+        let init_archetype_size = if chars.len() == 0 {
+            quote!{}
+        } else {
+            quote! {
+                let sizes = {
+                    let mut v = vec![
+                        #new_archetype_sizes_vector_elements
+                    ];
+                    
+                    v.sort_by(|a, b| {
+                        a.0.partial_cmp(&b.0).unwrap()
+                    });
+                    
+                    v.iter().map(|(_, size)| *size).collect::<Vec<usize>>()
+                };
+                self.arch_store.get_archetype_mut(id).init(&components, &sizes);
+            }
+        };
+        
         fns.push(quote! {
             pub fn #name #(#generics)* (&mut self, #(#params , )*) -> EntityId {
                 let ent_id = self.entity_store.new_id();
-                let components = vec![#(<#chars>::id(), )*];
-                let arch_id = match self.arch_store.get_new_entity_archetype(components, || {
-                    vec![
-                        #(
-                            ::std::mem::size_of::<#chars>(),
-                        )*
-                    ]
-                }) {
+                let mut components = vec![#(<#chars>::id(), )*];
+                components.sort();
+                let arch_id = match self.arch_store.get_new_entity_archetype(&components) {
                     NewEntityResult::NewArchetype(id) => {
                         #(
                             <#chars>::add_archetype(id);
                         )*
+                        #init_archetype_size
                         id
                     }
                     NewEntityResult::OldArchetype(id) => id
@@ -73,6 +94,8 @@ pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
             }
         });
     });
+    
+    
     TokenStream::from(quote! {
         #(#fns)*
     })
