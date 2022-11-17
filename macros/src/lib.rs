@@ -72,8 +72,11 @@ pub fn derive_component(item: TokenStream) -> TokenStream {
     }
     
     let name = &ast.ident;
+    let generics_and_lifetimes = &ast.generics;
     
-    TokenStream::from(crate::component::derive_component_impl(name))
+    let ts = TokenStream::from(crate::component::derive_component_impl(name, generics_and_lifetimes));
+    
+    ts
 }
 
 #[proc_macro_attribute]

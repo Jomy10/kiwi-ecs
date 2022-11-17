@@ -8,6 +8,7 @@ pub(crate) struct Entity {
     pub(crate) arch_row: ArchRowId,
 }
 
+// TODO: array of available entity ids to reuse
 pub(crate) struct EntityStore {
     next_id: EntityId,
     dead: Vec<u8>,

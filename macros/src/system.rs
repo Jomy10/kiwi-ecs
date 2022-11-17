@@ -2,7 +2,6 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
-
 pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     if item.is_empty() {
         panic!("The system attribute macro can only be applied to functions");

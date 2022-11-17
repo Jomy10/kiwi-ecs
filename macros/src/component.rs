@@ -5,14 +5,49 @@ use std::sync::Mutex;
 static mut COMP_ID_COUNTER: Mutex<u32> = Mutex::new(0);
 
 /// `field_less`: whether the strut has no fields
-pub fn derive_component_impl(name: &proc_macro2::Ident) -> TokenStream2 {
+pub fn derive_component_impl(name: &proc_macro2::Ident, generics_and_lifetimes: &syn::Generics) -> TokenStream2 {
     let comp_id = unsafe { &COMP_ID_COUNTER };
     let mut guard = comp_id.lock().unwrap();
     let this_id = *guard;
     *guard += 1;
     
+    let name = quote! {
+        #name
+    };
+
+    // TODO: handle more than 26 generics
+    let generics_code = generics_and_lifetimes.params.iter()
+        .map(|param| {
+            match param {
+                syn::GenericParam::Type(param) => {
+                    let name = &param.ident;
+                    quote! {
+                        #name
+                    }
+                },
+                syn::GenericParam::Lifetime(lifetime) => {
+                    let name = &lifetime.lifetime.ident;
+                    let lifetime = syn::Lifetime::new(&format!("'{}", name), proc_macro2::Span::call_site());
+                    quote! {
+                         #lifetime
+                    }
+                },
+                syn::GenericParam::Const(_) => unimplemented!("Const generics are not yet implemented for the derive component macro. Feel free to open a PR, or an issue."),
+            }
+        })
+        .enumerate()
+        .map(|(i, v)| {
+            if i != generics_and_lifetimes.params.len() - 1 {
+                quote! { #v, }
+            } else {
+                quote! { #v }
+            }
+        }).collect::<Vec<TokenStream2>>();
+    
+    let generics_def = generics_and_lifetimes;
+    
     quote! {
-        impl #name {
+        impl #generics_def #name<#(#generics_code)*> {
             #[inline(always)]
             fn get_archetypes_rwlock() -> &'static std::sync::RwLock<Vec<kiwi_ecs::ArchetypeId>> {
                 static ARCHETYPES: std::sync::RwLock<Vec<kiwi_ecs::ArchetypeId>> = std::sync::RwLock::new(Vec::new());
@@ -33,7 +68,7 @@ pub fn derive_component_impl(name: &proc_macro2::Ident) -> TokenStream2 {
                 guard
             }
         }
-        impl Component for #name {
+        impl #generics_def Component for #name<#(#generics_code)*> {
             #[inline]
             fn get_archetypes() -> ::std::sync::RwLockReadGuard<'static, Vec<kiwi_ecs::ArchetypeId>> {
                 Self::get_archetypes_read()

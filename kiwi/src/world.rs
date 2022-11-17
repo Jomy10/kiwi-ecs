@@ -25,6 +25,10 @@ impl World {
         self.entity_store.kill(ent_id);
     }
     
+    pub fn is_alive(&mut self, ent_id: EntityId) -> bool {
+        self.entity_store.is_alive(ent_id)
+    }
+    
     pub fn entity_count(&self) -> usize {
         self.entity_store.entity_count()
     }

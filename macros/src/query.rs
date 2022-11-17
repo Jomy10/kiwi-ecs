@@ -2,6 +2,7 @@ use proc_macro::TokenStream;
 use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
+// TODO: allow trailing comma in query macro
 pub fn gen_query_tokens(item: TokenStream, func_name: &str) -> TokenStream {
     let item_iter = item.into_iter();
     let mut item_collect = ItemCollect { item: item_iter, collected: Vec::new() };
