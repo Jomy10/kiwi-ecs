@@ -1,5 +1,5 @@
 use proc_macro::TokenStream;
-use proc_macro2::TokenStream as TokenStream2;
+// use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
 pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
@@ -16,6 +16,7 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let sys_sig = &ast.sig;
 
     // Return type
+    #[cfg(feature = "try")]
     let sys_ret = &sys_sig.output;
     
     
@@ -109,8 +110,11 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     //     quote! { #func_body }
     // };
     
+    #[cfg(feature = "try")]
     let mut query_def = quote! { let __query = #world_name_ident.#query_func ::<#(#param_types,)*>(); };
-    
+    #[cfg(not(feature = "try"))]
+    let query_def = quote! { let __query = #world_name_ident.#query_func ::<#(#param_types,)*>(); };
+
     let query = if sys_sig.output != syn::ReturnType::Default {
         // function has Result return type
         #[cfg(feature = "try")]
