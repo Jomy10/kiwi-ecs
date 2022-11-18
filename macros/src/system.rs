@@ -8,18 +8,22 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     }
     
     let ast: syn::ItemFn = syn::parse(item.clone())
-        .expect("The system attribute macro can only be applied to functions.");
+        .expect("The system attribute macro can only be applied to functions");
     
     // Function signature
     let sys_attr = &ast.attrs;
     let sys_vis = &ast.vis;
     let sys_sig = &ast.sig;
+
+    // Return type
+    let sys_ret = &sys_sig.output;
     
-    let return_ok: TokenStream2 = if sys_sig.output != syn::ReturnType::Default {
-        quote! { Ok(()) }
-    } else {
-        quote! {}
-    };
+    
+    // let return_ok: TokenStream2 = if sys_sig.output != syn::ReturnType::Default {
+    //     quote! { Ok(()) }
+    // } else {
+    //     quote! {}
+    // };
     
     // get world param
     let inputs = &ast.sig.inputs;
@@ -37,6 +41,9 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
     let mut param_types = Vec::new();
     let mut entity_id: bool = false;
     
+    #[cfg(feature = "try")]
+    let mut try_enabled = false;
+    
     for attr in attrs {
         match attr {
             ParamType::Param(param) => {
@@ -53,6 +60,12 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
                 param_vars = new; // id is always first variable in query result
                 entity_id = true;
             },
+            ParamType::Try => {
+                #[cfg(feature = "try")]
+                { try_enabled = true; }
+                #[cfg(not(feature = "try"))]
+                panic!("Can't use try in system.\n[help] Enable the `try` feature of kiwi-ecs.");
+            }
         }
     }
     
@@ -86,20 +99,78 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }
     };
     
-    let ts = TokenStream::from(quote! {
-        #(#sys_attr)*
-        #sys_vis #sys_sig {
-            let __query = #world_name_ident.#query_func ::<#(#param_types,)*>();
+    // let func_body =  if sys_sig.output != syn::ReturnType::Default {
+    //     quote! {
+    //         'return: {
+    //             #func_body
+    //         }
+    //     }
+    // } else {
+    //     quote! { #func_body }
+    // };
+    
+    let mut query_def = quote! { let __query = #world_name_ident.#query_func ::<#(#param_types,)*>(); };
+    
+    let query = if sys_sig.output != syn::ReturnType::Default {
+        // function has Result return type
+        #[cfg(feature = "try")]
+        {
+            query_def = quote! {
+                let mut __query = #world_name_ident.#query_func ::<#(#param_types,)*>();
+            };
             
+            if try_enabled {
+                quote! {
+                    // Returns sys_ret
+                    __query.try_for_each(|#for_each_parameter| #sys_ret {
+                        try {
+                            #func_body
+                        }
+                    })
+                }
+            } else {
+                
+                quote! {
+                    __query.for_each(|#for_each_parameter| {
+                        #func_body
+                    });
+            
+                    Ok(())
+                }
+            }
+        }
+        
+        #[cfg(not(feature = "try"))]
+        quote! {
             __query.for_each(|#for_each_parameter| {
                 #func_body
             });
             
-            #return_ok
-        }  
-    });
+            Ok(())
+        }
+    } else {
+        quote! {
+            __query.for_each(|#for_each_parameter| {
+                #func_body
+            });
+        }
+    };
     
-    ts
+    let body = quote! {
+        #query_def
+        #query
+    };
+    
+    let ts = quote! {
+        #(#sys_attr)*
+        #sys_vis #sys_sig {
+            #body
+        }  
+    };
+    
+    println!("{}", ts.to_string());
+    
+    TokenStream::from(ts)
 }
 
 fn system_get_world_name(inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::token::Comma>) -> (syn::Ident, bool) {
@@ -134,7 +205,6 @@ fn system_get_world_name(inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::t
             }
         }
     }
-    // }
     let world_name_ident = world_name_ident.expect("System function does not have a `world: &World` parameter");
     
     return (world_name_ident, world_is_mutable);
@@ -144,7 +214,8 @@ fn system_get_world_name(inputs: &syn::punctuated::Punctuated<syn::FnArg, syn::t
 enum ParamType {
     Param(Param),
     /// contains the name of the EntityId parameter
-    EntityId(Param)
+    EntityId(Param),
+    Try
 }
 
 #[derive(Debug)]
@@ -162,7 +233,11 @@ fn parse_system_attr(attrs: TokenStream) -> Vec<ParamType> {
     for attr in attrs {
         if let proc_macro::TokenTree::Ident(ident) = attr {
             if (&cur_var_name).is_none() {
-                cur_var_name = Some(ident);
+                if ident.to_string() == String::from("try") {
+                    param.push(ParamType::Try);
+                } else {
+                    cur_var_name = Some(ident);
+                }
             } else {
                 if ident.to_string() == "EntityId" {
                     param.push(ParamType::EntityId(Param {

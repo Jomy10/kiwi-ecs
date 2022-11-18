@@ -184,6 +184,37 @@ let query_result = query!(world, EntityId, Position)
   .filter(|(id, _pos)| world.has_flag(*id, Flags::Player));
 ```
 
+### Feature flags
+
+#### try
+
+The try feature of this crate enables returning early from a system.
+
+To enable it:
+
+```toml
+# Cargo.toml
+
+[dependencies]
+kiwi-ecs = { version = "*", features = ["try"] }
+```
+
+##### Usage
+
+Mark a system which returns a `Result` of ok type `()` with `try`:
+
+```rust
+#[system(try, id: EntityId, pos: Position)]
+fn a_system_with_a_fallible_condition(world: &World) -> Result<(), String> {
+  let mesh = get_mesh(id)?; // fallible function
+  render(mesh, pos)?;
+}
+```
+
+Next to returning an `Err`, you can also use
+`return std::ops::ControlFlow::Continue(())` to skip the current entity
+and continue to the next.
+
 # Contributing
 
 Contributors are always welcome. If you find any bugs, feel free to open an issue. If you feel like it, PRs are also appreciated!

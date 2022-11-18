@@ -15,7 +15,6 @@ pub fn derive_component_impl(name: &proc_macro2::Ident, generics_and_lifetimes: 
         #name
     };
 
-    // TODO: handle more than 26 generics
     let generics_code = generics_and_lifetimes.params.iter()
         .map(|param| {
             match param {
