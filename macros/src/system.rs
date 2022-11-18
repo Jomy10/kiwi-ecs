@@ -168,8 +168,6 @@ pub fn system_macro(attr: TokenStream, item: TokenStream) -> TokenStream {
         }  
     };
     
-    println!("{}", ts.to_string());
-    
     TokenStream::from(ts)
 }
 

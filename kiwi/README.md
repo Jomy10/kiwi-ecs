@@ -213,7 +213,8 @@ fn a_system_with_a_fallible_condition(world: &World) -> Result<(), String> {
 
 Next to returning an `Err`, you can also use
 `return std::ops::ControlFlow::Continue(())` to skip the current entity
-and continue to the next.
+and continue to the next or `return std::ops::ControlFlow::Break(())` to
+break from the function without an error.
 
 # Contributing
 
