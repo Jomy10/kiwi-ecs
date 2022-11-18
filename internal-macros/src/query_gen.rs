@@ -44,6 +44,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
         let end_map_ids = end_map(i + 1);
         
         quote! {
+            #[doc(hidden)]
             pub fn #func_name_query<'a, #(#generics,)*>(&'a self) -> #query_return_type {
                 #(#archetypes_defs)*
                 
@@ -57,6 +58,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                     #end_map_reg
             }
             
+            #[doc(hidden)]
             pub fn #func_name_query_id<'a, #(#generics,)*>(&'a self) -> #query_return_type_id {
                 #(#archetypes_defs)*
                 
@@ -70,6 +72,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                     #end_map_ids
             }
             
+            #[doc(hidden)]
             pub fn #func_name_query_mut<'a, #(#generics,)*>(&'a mut self) -> #query_return_type_mut {
                 #(#archetypes_defs)*
                 
@@ -83,6 +86,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                     #end_map_reg
             }
             
+            #[doc(hidden)]
             pub fn #func_name_query_mut_id<'a, #(#generics,)*>(&'a mut self) -> #query_return_type_mut_id {
                 #(#archetypes_defs)*
                 

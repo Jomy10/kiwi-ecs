@@ -1,3 +1,6 @@
+//! See [GitHub](https://github.com/jomy10/kiwi-ecs) for detailed documentation.
+// TODO: add docs to crate
+
 mod macros {
     pub use kiwi_macros::system;
     pub use kiwi_macros::query;

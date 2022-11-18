@@ -70,6 +70,7 @@ pub fn gen_spawn_entity(_: TokenStream) -> TokenStream {
         };
         
         fns.push(quote! {
+            #[doc(hidden)]
             pub fn #name #(#generics)* (&mut self, #(#params , )*) -> EntityId {
                 let ent_id = self.entity_store.new_id();
                 let mut components = vec![#(<#chars>::id(), )*];

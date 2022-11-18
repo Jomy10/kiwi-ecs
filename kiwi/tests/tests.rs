@@ -23,16 +23,16 @@ fn kill_entity_query() {
     let mut world = World::new();
     let id1 = world.spawn_entity0();
     let id2 = world.spawn_entity0();
-    let ids = world.query_ids0();
+    let ids: Vec<EntityId> = world.query_ids().collect();
     assert_eq!(ids, vec![id1, id2]);
     
     world.kill(id1);
-    let ids = world.query_ids0();
+    let ids: Vec<EntityId> = world.query_ids().collect();
     assert_eq!(ids, vec![id2]);
     
     world.kill(id2);
-    let ids = world.query_ids0();
-    assert_eq!(ids.len(), 0);
+    let ids = world.query_ids();
+    assert_eq!(ids.count(), 0);
 }
 
 
@@ -101,7 +101,7 @@ fn spawn_entity_macro() {
     assert_eq!(components.len(), 1);
     
     let ids = query!(world, EntityId);
-    assert_eq!(ids.len(), 3);
+    assert_eq!(ids.count(), 3);
 }
 
 #[test]

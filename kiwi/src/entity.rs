@@ -15,6 +15,7 @@ pub(crate) struct EntityStore {
     entities: Vec<Entity>,
     /// Flags for entities
     flags: Vec<Vec<u8>>,
+    available_ids: Vec<EntityId>
 }
 
 impl EntityStore {
@@ -24,17 +25,24 @@ impl EntityStore {
             dead: Vec::new(),
             entities: Vec::new(),
             flags: Vec::new(),
+            available_ids: Vec::new()
         }
     }
     
-    #[inline]
     /// Gets a new entity id
+    #[inline]
     pub(crate) fn new_id(&mut self) -> EntityId {
-        let entity_id = self.next_id;
-        self.next_id += 1;
-        return entity_id;
+        if let Some(id) = self.available_ids.pop() {
+            return id;
+        } else {
+            let entity_id = self.next_id;
+            self.next_id += 1;
+            return entity_id;
+        }
+        
     }
 
+    /// Spawn a new entity with the given ids
     #[inline]
     pub(crate) fn spawn_with_id(&mut self, ent_id: EntityId, arch_id: ArchetypeId, arch_row: ArchRowId) {
         if self.entities.len() <= ent_id as usize {
@@ -44,9 +52,9 @@ impl EntityStore {
         }
     }
 
-    #[inline]
     /// Marks an entity as dead
-    pub(crate) fn kill(&mut self, ent: EntityId) {
+    #[inline]
+    pub(crate) fn kill_and_keep(&mut self, ent: EntityId) {
         let idx = ent / 8;
         let idx2 = ent % 8;
         if self.dead.len() <= ent as usize {
@@ -54,6 +62,17 @@ impl EntityStore {
         }
         let dead_map = &mut self.dead[idx as usize];
         *dead_map |= 1 << idx2
+    }
+
+    #[inline]
+    pub(crate) fn kill(&mut self, ent: EntityId) {
+        self.kill_and_keep(ent);
+        self.free_id(ent);
+    }
+    
+    #[inline]
+    pub(crate) fn free_id(&mut self, ent: EntityId) {
+        self.available_ids.push(ent);
     }
 
     #[inline]
