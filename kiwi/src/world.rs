@@ -115,6 +115,11 @@ impl World {
     pub fn set_flag<F: Flag>(&mut self, entity: EntityId, flag: F) {
         self.entity_store.set_flag(entity, flag.into())
     }
+
+    /// Remove a flag from an entity
+    pub fn unset_flag<F: Flag>(&mut self, entity: EntityId, flag: F) {
+        self.entity_store.unset_flag(entity, flag.into())
+    }
 }
 
 // Queries

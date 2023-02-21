@@ -323,6 +323,30 @@ fn system_single_component() {
     test_pos_system(&mut world);
 }
 
+#[test]
+fn unset_flag() {
+    #[flags]
+    enum Flags {
+        One,
+        Two
+    }
+    
+    let mut world = World::new();
+    let id = spawn_entity!(world);
+
+    world.set_flag(id, Flags::Two);
+    assert!(world.has_flag(id, Flags::Two));
+    assert!(!world.has_flag(id, Flags::One));
+
+    world.unset_flag(id, Flags::Two);
+    assert!(!world.has_flag(id, Flags::Two));
+    assert!(!world.has_flag(id, Flags::One));
+
+    world.unset_flag(id, Flags::One);
+    assert!(!world.has_flag(id, Flags::Two));
+    assert!(!world.has_flag(id, Flags::One));
+}
+
 mod example {
     use super::*;
     

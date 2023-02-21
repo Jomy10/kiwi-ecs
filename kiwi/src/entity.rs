@@ -138,6 +138,23 @@ impl EntityStore {
         
         self.flags[flag as usize][idx as usize] |= 1 << idx2;
     }
+
+    #[inline]
+    pub(crate) fn unset_flag(&mut self, ent: EntityId, flag: FlagId) {
+        let idx = ent / 8;
+        let idx2 = ent % 8;
+
+        if self.flags.len() <= flag as usize {
+            // flag is already unset
+            return;
+        }
+
+        if self.flags[flag as usize].len() <= idx as usize {
+            return;
+        }
+
+        self.flags[flag as usize][idx as usize] &= !(1 << idx2);
+    }
 }
 
 #[cfg(test)]
