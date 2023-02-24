@@ -2,7 +2,7 @@ use std::mem::MaybeUninit;
 use std::collections::HashMap;
 
 use crate::component::{Component, ComponentId};
-use crate::entity::{EntityId, EntityStore};
+use crate::entity::EntityId;
 
 //=====================
 // ID Type
@@ -204,32 +204,26 @@ impl Archetype {
     }
     
     #[inline]
-    pub(crate) fn get_arch_rows<'a, 'b>(&'a self, ent_store: &'b EntityStore) 
+    pub(crate) fn get_arch_rows<'a, 'b>(&'a self) 
         -> impl std::iter::Iterator<Item = ArchRowId> + 'a
         where 'b: 'a
     {
         self.entities.iter()
             .enumerate()
-            .filter(|(_, id)| ent_store.is_alive(**id))
+            .filter(|(row, _)| !self.available_ent_ids.contains(&(*row as u32)))
             .map(|(row, _)| row as u32)
     }
     
     #[inline]
-    pub(crate) fn get_entity_ids<'a, 'b>(&'a self, ent_store: &'b EntityStore)
+    pub(crate) fn get_entity_ids<'a, 'b>(&'a self)
         -> impl std::iter::Iterator<Item = EntityId> + 'a
         where 'b: 'a
     {
         self.entities.iter()
-            .filter(|id| ent_store.is_alive(**id))
-            .map(|id| *id)
+            .enumerate()
+            .filter(|(row, _)| !self.available_ent_ids.contains(&(*row as u32)))
+            .map(|(_, id)| *id)
     }
-    
-    // #[inline]
-    // pub(crate) fn get_rows_and_ids(&self, ent_store: &EntityStore) -> Vec<(ArchRowId, EntityId)> {
-    //     get_entity_ids_enumerate_iter!(self, ent_store)
-    //         .map(|(row, id)| (row as u32, *id))
-    //         .collect()
-    // }
     
     #[inline]
     pub(crate) fn has_component(&self, id: ComponentId) -> bool {

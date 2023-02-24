@@ -84,3 +84,20 @@ fn spawn_fighter_game() {
         assert_eq!(id, i);
     }
 }
+
+#[test]
+fn reuse_ids() {
+    #[derive(Component, Debug, PartialEq)]
+    struct Pos { x: u32, y: u32 }
+
+    #[derive(Component, Debug, PartialEq)]
+    struct Vel { x: u32, y: u32 }
+
+    let mut world = World::new();
+    
+    let id = spawn_entity!(world, Vel { x: 0, y: 10 });
+    world.kill(id);
+    let id = spawn_entity!(world, Pos { x: 10, y: 11 }, Vel { x: 10, y: 10 });
+    assert_eq!(*world.get_component::<Pos>(id), Pos { x: 10, y: 11 });
+    assert_eq!(*world.get_component::<Vel>(id), Vel { x: 10, y: 10 });
+}

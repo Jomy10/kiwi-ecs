@@ -8,7 +8,6 @@ pub(crate) struct Entity {
     pub(crate) arch_row: ArchRowId,
 }
 
-// TODO: array of available entity ids to reuse
 pub(crate) struct EntityStore {
     next_id: EntityId,
     dead: Vec<u8>,
@@ -33,6 +32,15 @@ impl EntityStore {
     #[inline]
     pub(crate) fn new_id(&mut self) -> EntityId {
         if let Some(id) = self.available_ids.pop() {
+            // Reset flags
+            let idx = id / 8;
+            let idx2 = id % 8;
+            self.flags.iter_mut().for_each(|flag_bitmap| {
+                if let Some(bitmap) = flag_bitmap.get_mut(idx as usize) {
+                    *bitmap &= !(1 << idx2);
+                }
+            });
+
             return id;
         } else {
             let entity_id = self.next_id;
@@ -54,7 +62,7 @@ impl EntityStore {
 
     /// Marks an entity as dead
     #[inline]
-    pub(crate) fn kill_and_keep(&mut self, ent: EntityId) {
+    pub(crate) fn kill_and_keep(&mut self, ent: EntityId) {        
         let idx = ent / 8;
         let idx2 = ent % 8;
         if self.dead.len() <= ent as usize {

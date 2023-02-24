@@ -2,7 +2,7 @@ use proc_macro2::TokenStream as TokenStream2;
 use quote::quote;
 
 pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
-    (1..max_query_comps).map(|i| {
+    let tokens: TokenStream2 = (1..max_query_comps).map(|i| {
         
         // General //
         let (
@@ -65,7 +65,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                 #filter_iterator
                     .flat_map(|arch_id| {
                         let archetype = self.arch_store.get_archetype(arch_id);
-                        let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows(&self.entity_store).collect();
+                        let entities: Vec<crate::arch::ArchRowId> = archetype.get_arch_rows().collect();
                     
                         #zip_reg_id
                     })
@@ -79,7 +79,7 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                 #filter_iterator
                     .flat_map(|arch_id| {
                         let archetype: *mut crate::arch::Archetype = self.arch_store.get_archetype_mut(arch_id);
-                        let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows(&self.entity_store).collect() };
+                        let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows().collect() };
                         
                         #zip_mut
                     })
@@ -93,14 +93,16 @@ pub(crate) fn query_impl(max_query_comps: usize) -> TokenStream2 {
                 #filter_iterator
                     .flat_map(|arch_id| {
                         let archetype: *mut crate::arch::Archetype = self.arch_store.get_archetype_mut(arch_id);
-                        let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows(&self.entity_store).collect() };
+                        let entities: Vec<crate::arch::ArchRowId> = unsafe { (*archetype).get_arch_rows().collect() };
                         
                         #zip_mut_id
                     })
                     #end_map_ids
             }
         }
-    }).collect()
+    }).collect();
+    
+    return tokens;
 }
 
 fn query_names(i: usize) -> (syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident, syn::Ident) {
@@ -200,12 +202,12 @@ fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType, query_ids: bool) 
     let id_iter = if let GetComponentsType::Mut = ty {
         quote! {
             unsafe {
-                #archetype.get_entity_ids(&self.entity_store)
+                #archetype.get_entity_ids()
             }
         }
     } else {
         quote! {
-            #archetype.get_entity_ids(&self.entity_store)
+            #archetype.get_entity_ids()
         }
     };
 
@@ -221,12 +223,12 @@ fn zip(generic_names: &Vec<syn::Ident>, ty: GetComponentsType, query_ids: bool) 
             quote! {
                 ::std::iter::zip(
                     #id_iter,
-                    unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)) }
+                    unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows()) }
                 )
             }
         } else {
             quote! {
-                unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)) }
+                unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows()) }
             }
         }
     } else {
@@ -274,14 +276,14 @@ fn get_next_zip(generic_names: &Vec<syn::Ident>, i: usize, ty: GetComponentsType
         Some(next) => {
             quote! {
                 ::std::iter::zip(
-                    unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)/*entities.clone()*/) },
+                    unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows()/*entities.clone()*/) },
                     #next
                 )
             }
         },
         None => {
             quote! {
-                unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows(&self.entity_store)/*entities*/) }
+                unsafe { #archetype.#func_name ::<#generic_name>(#archetype.get_arch_rows()/*entities*/) }
             }
         }
     });

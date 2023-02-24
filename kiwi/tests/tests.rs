@@ -347,6 +347,23 @@ fn unset_flag() {
     assert!(!world.has_flag(id, Flags::One));
 }
 
+#[test]
+fn reuse_entity_id_flags() {
+    #[allow(unused)]
+    #[flags]
+    enum Flags {
+        One, Two
+    }
+    
+    let mut world = World::new();
+
+    let id = spawn_entity!(world);
+    world.set_flag(id, Flags::One);
+    world.kill(id);
+    let id = spawn_entity!(world);
+    assert!(!world.has_flag(id, Flags::One));
+}
+
 mod example {
     use super::*;
     
